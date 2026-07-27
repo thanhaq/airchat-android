@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="sharedpref" path="airchat_identity.xml" />
+    <exclude domain="sharedpref" path="airchat_messages.xml" />
+    <exclude domain="sharedpref" path="airchat_peer_trust.xml" />
+    <exclude domain="sharedpref" path="airchat_received_files.xml" />
+    <exclude domain="file" path="received-files/" />
+</full-backup-content>

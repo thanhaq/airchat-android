@@ -1,0 +1,58 @@
+package dev.offlinemesh.airchat.core
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class ChatCommandParserTest {
+    @Test
+    fun parsesPlainTextAsSendText() {
+        assertEquals(ChatCommand.SendText("hello mesh"), ChatCommandParser.parse(" hello mesh "))
+    }
+
+    @Test
+    fun parsesJoinAndSanitizesChannelNames() {
+        assertEquals(ChatCommand.JoinRoom("storm"), ChatCommandParser.parse("/join #storm ops"))
+        assertEquals(ChatCommand.JoinRoom("base-camp"), ChatCommandParser.parse("/j #base-camp"))
+    }
+
+    @Test
+    fun parsesRoomAsLeaveDirect() {
+        assertEquals(ChatCommand.LeaveDirect, ChatCommandParser.parse("/room"))
+        assertEquals(ChatCommand.LeaveDirect, ChatCommandParser.parse("/lobby"))
+    }
+
+    @Test
+    fun parsesDirectMessageAliases() {
+        assertEquals(
+            ChatCommand.DirectMessage(target = "abc123", body = "bring radios"),
+            ChatCommandParser.parse("/msg @abc123 bring radios")
+        )
+        assertEquals(
+            ChatCommand.DirectMessage(target = "alice", body = "copy"),
+            ChatCommandParser.parse("/dm alice copy")
+        )
+    }
+
+    @Test
+    fun parsesActionWhoAndHelp() {
+        assertEquals(ChatCommand.Action("checks the relay"), ChatCommandParser.parse("/me checks the relay"))
+        assertEquals(ChatCommand.ShowPeers, ChatCommandParser.parse("/who"))
+        assertEquals(ChatCommand.ShowHelp, ChatCommandParser.parse("/help"))
+    }
+
+    @Test
+    fun rejectsIncompleteCommands() {
+        assertEquals(ChatCommand.Unknown("msg"), ChatCommandParser.parse("/msg alice"))
+        assertEquals(ChatCommand.Unknown("me"), ChatCommandParser.parse("/me"))
+        assertEquals(ChatCommand.Unknown("nope"), ChatCommandParser.parse("/nope"))
+    }
+
+    @Test
+    fun channelSanitizerFallsBackAndClamps() {
+        assertEquals("lobby", ChatCommandParser.sanitizeChannel("###"))
+        assertEquals(
+            "abcdefghijklmnopqrstuvwxzy012345".take(32),
+            ChatCommandParser.sanitizeChannel("#abcdefghijklmnopqrstuvwxzy0123456789")
+        )
+    }
+}

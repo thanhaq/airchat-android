@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AirChat</string>
+    <string name="background_mesh_channel">Background mesh</string>
+    <string name="background_mesh_channel_description">Keeps local Wi-Fi discovery and relay active.</string>
+    <string name="background_mesh_title">AirChat mesh is running</string>
+    <string name="background_mesh_text">Listening for nearby peers on local Wi-Fi.</string>
+    <string name="background_mesh_stop">Stop</string>
+</resources>
