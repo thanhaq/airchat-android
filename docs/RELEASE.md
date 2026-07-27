@@ -46,7 +46,7 @@ On macOS or Linux:
 bash ./scripts/package-debug-release.sh v0.1.0
 ```
 
-The package script runs the full preflight gate, copies the debug APK into `release/`, writes `SHA256SUMS.txt`, and drafts release notes. The `release/` folder is ignored so generated artifacts do not enter source control.
+The package script runs the full preflight gate, refreshes generated AirChat artifacts in `release/`, copies the debug APK, writes `SHA256SUMS.txt`, writes `RELEASE_MANIFEST.json`, and drafts release notes. The `release/` folder is ignored so generated artifacts do not enter source control.
 
 ## Versioning
 
@@ -89,7 +89,7 @@ On macOS or Linux:
 bash ./scripts/package-signed-release.sh v0.1.0
 ```
 
-The signed package script runs the full preflight gate, builds `:app:assembleRelease`, copies the signed APK into `release/`, writes `SHA256SUMS.txt`, records the source commit, and records the signing certificate SHA-256 fingerprint in `RELEASE_NOTES.md`.
+The signed package script runs the full preflight gate, builds `:app:assembleRelease`, copies the signed APK into `release/`, writes `SHA256SUMS.txt`, writes `RELEASE_MANIFEST.json`, records the source commit, and records the signing certificate SHA-256 fingerprint in `RELEASE_NOTES.md`.
 
 For GitHub Actions signed releases, add these repository secrets:
 
@@ -110,7 +110,7 @@ Keep the release as a draft until the real-device test matrix is complete. For e
 - Manual LAN, Wi-Fi Direct, DM, file persistence, share, and background mesh checks are recorded.
 - Slash command checks are recorded.
 - Field test report is completed.
-- APK SHA-256 and source commit are listed in the release notes.
+- APK SHA-256, source commit, and package variant are listed in `RELEASE_MANIFEST.json`.
 - Signing certificate fingerprint is listed for signed APK releases.
 - Screenshots are refreshed.
 - Known limitations are called out in the release notes.

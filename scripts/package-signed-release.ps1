@@ -81,6 +81,10 @@ if (-not (Test-Path -LiteralPath $keystore)) {
 
 $releaseDir = Join-Path (Get-Location) "release"
 New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+$generatedReleaseFiles = @("SHA256SUMS.txt", "RELEASE_NOTES.md", "RELEASE_MANIFEST.json")
+Get-ChildItem -LiteralPath $releaseDir -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -like "airchat-*.apk" -or $_.Name -in $generatedReleaseFiles } |
+    ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
 
 $apkSource = Join-Path (Get-Location) "app\build\outputs\apk\release\app-release.apk"
 if (-not (Test-Path -LiteralPath $apkSource)) {
@@ -94,11 +98,42 @@ Copy-Item -LiteralPath $apkSource -Destination $apkTarget -Force
 
 $hash = (Get-FileHash $apkTarget -Algorithm SHA256).Hash
 $fingerprint = Get-ApkCertificateFingerprint $apkTarget
+$sourceCommit = (git rev-parse HEAD)
+$apkSize = (Get-Item -LiteralPath $apkTarget).Length
+$generatedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
 $shaFile = Join-Path $releaseDir "SHA256SUMS.txt"
 [System.IO.File]::WriteAllText(
     $shaFile,
     "$hash  $apkName`n",
+    [System.Text.UTF8Encoding]::new($false)
+)
+
+$manifestFile = Join-Path $releaseDir "RELEASE_MANIFEST.json"
+$manifest = [ordered]@{
+    schema = "dev.offlinemesh.airchat.release-manifest.v1"
+    app = "AirChat"
+    version = $Version
+    variant = "signed-release"
+    sourceCommit = $sourceCommit
+    generatedAtUtc = $generatedAt
+    apk = [ordered]@{
+        file = $apkName
+        sha256 = $hash
+        sizeBytes = $apkSize
+        signingCertificateSha256 = $fingerprint
+    }
+    build = [ordered]@{
+        command = ".\scripts\package-signed-release.ps1 $Version"
+        testGate = ".\scripts\preflight.ps1"
+        compileSdk = 35
+        minSdk = 26
+        targetSdk = 35
+    }
+}
+[System.IO.File]::WriteAllText(
+    $manifestFile,
+    ($manifest | ConvertTo-Json -Depth 5) + "`n",
     [System.Text.UTF8Encoding]::new($false)
 )
 
@@ -110,9 +145,10 @@ This is a signed Android APK for offline Wi-Fi mesh field testing and public Git
 
 ## Verification
 
-- Source commit: $(git rev-parse HEAD)
+- Source commit: $sourceCommit
 - APK SHA-256: $hash
 - Signing certificate SHA-256: $fingerprint
+- Machine-readable manifest: ``RELEASE_MANIFEST.json``
 - Build command: ``.\scripts\package-signed-release.ps1 $Version``
 - Test gate: ``.\scripts\preflight.ps1``
 

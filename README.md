@@ -173,6 +173,8 @@ To package a labeled debug test build and SHA file for GitHub Releases:
 .\scripts\package-debug-release.ps1 v0.1.0
 ```
 
+The package scripts write `release/RELEASE_NOTES.md`, `release/SHA256SUMS.txt`, and `release/RELEASE_MANIFEST.json` for release verification.
+
 To package a signed public APK after configuring release signing environment variables:
 
 ```powershell
