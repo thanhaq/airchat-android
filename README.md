@@ -157,6 +157,12 @@ To package a labeled debug test build and SHA file for GitHub Releases:
 .\scripts\package-debug-release.ps1 v0.1.0
 ```
 
+To package a signed public APK after configuring release signing environment variables:
+
+```powershell
+.\scripts\package-signed-release.ps1 v0.1.0
+```
+
 To publish after creating an empty GitHub repository:
 
 ```powershell

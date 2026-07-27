@@ -36,6 +36,7 @@
 - Added Dependabot configuration for Gradle and GitHub Actions updates.
 - Added GitHub Actions CI, issue templates, and contribution docs.
 - Added draft GitHub Release workflow and local packaging scripts for debug test APKs plus SHA-256 manifests.
+- Added signed release packaging scripts and CI support for keystore-backed GitHub Release artifacts.
 - Added guarded GitHub publish scripts and a field-test report template.
 - Added diagnostics comparison tooling and workflow docs for two-device field reports.
 - Added Android lint to the documented and CI verification gate.

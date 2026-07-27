@@ -42,8 +42,10 @@ To publish and trigger the draft release workflow with a tag:
 
 - Use tag `v0.1.0`.
 - Push tag `v0.1.0` and let `.github/workflows/release.yml` create the draft release package.
+- Configure signing secrets before tagging if you want the workflow to publish a signed APK instead of a debug test APK.
 - Attach the debug APK only if the release title or notes clearly say it is a test build.
 - Include the source commit SHA and APK SHA-256.
+- Include the signing certificate SHA-256 fingerprint for signed APK releases.
 - Link the real-device test notes from `docs/TEST_PLAN.md`.
 - Include diagnostics text from both test devices.
 - Include the Markdown comparison from `scripts/compare-diagnostics.ps1`.

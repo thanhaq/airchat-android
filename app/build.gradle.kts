@@ -5,6 +5,19 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+fun env(name: String): String? = providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+
+val releaseKeystore = env("AIRCHAT_KEYSTORE")
+val releaseKeystorePassword = env("AIRCHAT_KEYSTORE_PASSWORD")
+val releaseKeyAlias = env("AIRCHAT_KEY_ALIAS")
+val releaseKeyPassword = env("AIRCHAT_KEY_PASSWORD") ?: releaseKeystorePassword
+val releaseSigningReady = listOf(
+    releaseKeystore,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { it != null }
+
 android {
     namespace = "dev.offlinemesh.airchat"
     compileSdk = 35
@@ -19,9 +32,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseSigningReady) {
+            create("airchatRelease") {
+                storeFile = file(releaseKeystore!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("airchatRelease")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

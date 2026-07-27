@@ -58,18 +58,49 @@ The package script runs the full preflight gate, copies the debug APK into `rele
 
 For public GitHub releases, generate a release keystore outside the repository and keep it out of source control.
 
+Example:
+
+```powershell
+keytool -genkeypair -v -keystore C:\secure\airchat-release.jks -alias airchat -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=AirChat Offline Mesh, OU=AirChat, O=Offline Mesh"
+```
+
 Recommended local environment variables:
 
 ```powershell
 $env:AIRCHAT_KEYSTORE="C:\path\to\airchat-release.jks"
+$env:AIRCHAT_KEYSTORE_PASSWORD="<store-password>"
 $env:AIRCHAT_KEY_ALIAS="airchat"
+$env:AIRCHAT_KEY_PASSWORD="<key-password>"
 ```
+
+`AIRCHAT_KEY_PASSWORD` may be omitted if it is the same as `AIRCHAT_KEYSTORE_PASSWORD`.
 
 Do not commit keystores, passwords, Play Console exports, or private signing material.
 
+To create a signed APK locally after field testing:
+
+```powershell
+.\scripts\package-signed-release.ps1 v0.1.0
+```
+
+On macOS or Linux:
+
+```bash
+bash ./scripts/package-signed-release.sh v0.1.0
+```
+
+The signed package script runs the full preflight gate, builds `:app:assembleRelease`, copies the signed APK into `release/`, writes `SHA256SUMS.txt`, records the source commit, and records the signing certificate SHA-256 fingerprint in `RELEASE_NOTES.md`.
+
+For GitHub Actions signed releases, add these repository secrets:
+
+- `AIRCHAT_KEYSTORE_BASE64`: base64-encoded release keystore.
+- `AIRCHAT_KEYSTORE_PASSWORD`: release keystore password.
+- `AIRCHAT_KEY_ALIAS`: release key alias.
+- `AIRCHAT_KEY_PASSWORD`: release key password, or the same value as the keystore password.
+
 ## Release artifact
 
-Pushing a tag like `v0.1.0` runs `.github/workflows/release.yml`. The workflow runs the full preflight gate, uploads the debug test APK, `SHA256SUMS.txt`, and generated notes as an Actions artifact, then creates a draft GitHub Release.
+Pushing a tag like `v0.1.0` runs `.github/workflows/release.yml`. The workflow runs the full preflight gate, uploads a signed APK when signing secrets are configured, falls back to a debug test APK otherwise, uploads `SHA256SUMS.txt` and generated notes as an Actions artifact, then creates a draft GitHub Release.
 
 Keep the release as a draft until the real-device test matrix is complete. For early open-source testing, attach a debug APK only if the release notes clearly label it as a test build.
 
@@ -80,6 +111,7 @@ Keep the release as a draft until the real-device test matrix is complete. For e
 - Slash command checks are recorded.
 - Field test report is completed.
 - APK SHA-256 and source commit are listed in the release notes.
+- Signing certificate fingerprint is listed for signed APK releases.
 - Screenshots are refreshed.
 - Known limitations are called out in the release notes.
 - Tag format: `v0.1.0`.
