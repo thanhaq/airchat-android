@@ -24,6 +24,7 @@ AirChat uses one JSON line per packet over TCP sockets. The same packet format i
 
 - `Hello`: identity announcement.
 - `Chat`: public channel message.
+- `RoomEncrypted`: passphrase-locked room envelope.
 - `Direct`: encrypted direct message payload.
 - `FileManifest`: file metadata, chunk count, and SHA-256 hash.
 - `FileChunk`: base64url-encoded chunk data.
@@ -71,9 +72,40 @@ New direct payloads decrypt to a `DirectEnvelope`. Older clients that sent raw t
 
 `kind` may be `Text`, `FileManifest`, or `FileChunk`. File envelopes put the serialized manifest or chunk JSON in `body`.
 
+## Private rooms
+
+`RoomEncrypted` packets store an encrypted JSON payload for a room whose participants have entered the same passphrase with `/lock`.
+
+```json
+{
+  "version": 1,
+  "nonce": "base64url-12-byte-nonce",
+  "ciphertext": "base64url-aes-gcm"
+}
+```
+
+The room key is derived in memory from the passphrase and channel name with PBKDF2-HMAC-SHA256. The passphrase is not written to disk. Each encrypted packet uses a fresh AES-GCM nonce and this associated data:
+
+```text
+airchat-room-v1:{channel}:{packetId}
+```
+
+The decrypted room payload is a `RoomEnvelope`:
+
+```json
+{
+  "kind": "Text",
+  "body": "hello"
+}
+```
+
+`kind` may be `Text`, `FileManifest`, or `FileChunk`. Private-room files encrypt the same file manifest and chunk records used by public files.
+
+Receivers that have not entered the room key keep a bounded in-memory buffer of locked room packets. When the user later enters the matching passphrase, AirChat attempts to unlock buffered packets for that channel and replaces locked placeholders with verified plaintext.
+
 ## Delivery receipts
 
-When a peer accepts and verifies a public `Chat` packet or decrypts and verifies a direct text packet, it sends a signed `Ack` packet back toward the origin. ACK packets can also be relayed through the mesh.
+When a peer accepts and verifies a public `Chat` packet, decrypts and verifies a private-room text packet, or decrypts and verifies a direct text packet, it sends a signed `Ack` packet back toward the origin. ACK packets can also be relayed through the mesh.
 
 ```json
 {
@@ -89,7 +121,7 @@ Senders mark a local message as `received` after a valid ACK for that packet id.
 
 File transfer is represented by a manifest packet and a sequence of chunk packets. Chunks are capped at 32 KiB before base64url encoding, and the current file picker caps selected files at 10 MB. Receivers reassemble only when every chunk index is present and the final SHA-256 hash matches the manifest.
 
-Public-channel files use `FileManifest` and `FileChunk` packets. Direct files use `Direct` packets whose decrypted envelope kind is `FileManifest` or `FileChunk`. Plain `FileManifest` and `FileChunk` packets in `dm:` channels are ignored.
+Public-channel files use `FileManifest` and `FileChunk` packets. Private-room files use `RoomEncrypted` packets whose decrypted envelope kind is `FileManifest` or `FileChunk`. Direct files use `Direct` packets whose decrypted envelope kind is `FileManifest` or `FileChunk`. Plain `FileManifest` and `FileChunk` packets in `dm:` channels are ignored.
 
 ```json
 {
@@ -122,7 +154,7 @@ Courier mode is opportunistic store-and-forward for packets that were already ac
 - Entries are encrypted at rest with Android Keystore AES-GCM and excluded from Android backup/device transfer.
 - The queue is flushed when transports report peer changes or when the router starts.
 - Courier entries keep the already-decremented TTL and appended relay path, so retries do not create extra hops.
-- Public packets remain visible to local peers; direct packets remain encrypted but still expose metadata such as timing and packet size.
+- Public packets remain visible to local peers; private-room and direct packets remain encrypted but still expose metadata such as timing and packet size.
 
 ## Guard rails
 

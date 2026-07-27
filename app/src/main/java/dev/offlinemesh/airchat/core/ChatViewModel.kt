@@ -19,6 +19,7 @@ data class ChatUiState(
     val nickname: String,
     val localPublicKey: String,
     val channel: String,
+    val privateRoomEnabled: Boolean,
     val directPeer: Peer?,
     val composer: String,
     val peers: List<Peer>,
@@ -39,7 +40,16 @@ private data class RouterState(
     val messages: List<ChatMessage>,
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
+    val privateRoomChannels: Set<String>,
     val statuses: List<TransportStatus>
+)
+
+private data class RouterCoreState(
+    val peers: List<Peer>,
+    val messages: List<ChatMessage>,
+    val files: List<ReceivedFile>,
+    val courierQueueSize: Int,
+    val privateRoomChannels: Set<String>
 )
 
 class ChatViewModel(
@@ -53,18 +63,29 @@ class ChatViewModel(
         ComposerState(text = text, channel = channelName, directPeerId = directId)
     }
 
-    private val routerState = combine(
+    private val routerCoreState = combine(
         router.peers,
         router.messages,
         router.receivedFiles,
         router.courierQueueSize,
-        router.transportStatuses
-    ) { peers, messages, files, courierQueueSize, statuses ->
-        RouterState(
+        router.privateRoomChannels
+    ) { peers, messages, files, courierQueueSize, privateRoomChannels ->
+        RouterCoreState(
             peers = peers,
             messages = messages,
             files = files,
             courierQueueSize = courierQueueSize,
+            privateRoomChannels = privateRoomChannels
+        )
+    }
+
+    private val routerState = combine(routerCoreState, router.transportStatuses) { coreState, statuses ->
+        RouterState(
+            peers = coreState.peers,
+            messages = coreState.messages,
+            files = coreState.files,
+            courierQueueSize = coreState.courierQueueSize,
+            privateRoomChannels = coreState.privateRoomChannels,
             statuses = statuses
         )
     }
@@ -79,6 +100,7 @@ class ChatViewModel(
             nickname = router.localName,
             localPublicKey = router.localPublicKey,
             channel = composerState.channel,
+            privateRoomEnabled = composerState.channel in routerState.privateRoomChannels,
             directPeer = directPeer,
             composer = composerState.text,
             peers = sortedPeers,
@@ -95,6 +117,7 @@ class ChatViewModel(
             nickname = router.localName,
             localPublicKey = router.localPublicKey,
             channel = "lobby",
+            privateRoomEnabled = false,
             directPeer = null,
             composer = "",
             peers = emptyList(),
@@ -123,6 +146,8 @@ class ChatViewModel(
             ChatCommand.LeaveDirect -> leaveDirect()
             is ChatCommand.DirectMessage -> sendCommandDirectMessage(command, input)
             is ChatCommand.Action -> sendText("* ${router.localName} ${command.body}", input)
+            is ChatCommand.LockRoom -> lockCurrentRoom(command.passphrase)
+            ChatCommand.UnlockRoom -> unlockCurrentRoom()
             ChatCommand.ShowPeers -> showPeerNotice()
             ChatCommand.ShowHelp -> router.appendLocalNotice(activeConversationChannel(), COMMAND_HELP)
             is ChatCommand.Unknown -> {
@@ -152,6 +177,27 @@ class ChatViewModel(
     private fun leaveDirect() {
         directPeerId.value = null
         router.appendLocalNotice(channel.value, "Returned to #${channel.value}")
+    }
+
+    private fun lockCurrentRoom(passphrase: String) {
+        directPeerId.value = null
+        val locked = router.setRoomPassphrase(channel.value, passphrase)
+        if (locked) {
+            router.appendLocalNotice(channel.value, "Private room enabled for #${channel.value}")
+        } else {
+            router.appendLocalNotice(channel.value, "Room passphrase was empty")
+        }
+    }
+
+    private fun unlockCurrentRoom() {
+        directPeerId.value = null
+        val unlocked = router.clearRoomPassphrase(channel.value)
+        val body = if (unlocked) {
+            "Private room disabled for #${channel.value}"
+        } else {
+            "No private-room key set for #${channel.value}"
+        }
+        router.appendLocalNotice(channel.value, body)
     }
 
     private fun sendCommandDirectMessage(command: ChatCommand.DirectMessage, originalInput: String) {
@@ -239,4 +285,5 @@ class ChatViewModel(
     }
 }
 
-private const val COMMAND_HELP = "Commands: /join room, /room, /msg peer text, /me action, /who."
+private const val COMMAND_HELP =
+    "Commands: /join room, /lock passphrase, /unlock, /room, /msg peer text, /me action, /who."

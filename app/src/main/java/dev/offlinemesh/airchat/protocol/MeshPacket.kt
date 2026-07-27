@@ -21,10 +21,31 @@ data class MeshPacket(
 enum class PacketType {
     Hello,
     Chat,
+    RoomEncrypted,
     Direct,
     FileManifest,
     FileChunk,
     Ack
+}
+
+@Serializable
+data class RoomEncryptedPayload(
+    val version: Int = 1,
+    val nonce: String,
+    val ciphertext: String
+)
+
+@Serializable
+data class RoomEnvelope(
+    val kind: RoomEnvelopeKind,
+    val body: String
+)
+
+@Serializable
+enum class RoomEnvelopeKind {
+    Text,
+    FileManifest,
+    FileChunk
 }
 
 @Serializable

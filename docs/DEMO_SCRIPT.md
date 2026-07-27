@@ -16,22 +16,25 @@ Use this script for a short README GIF, release video, or social post.
 3. Send `hello from phone A` in `lobby`.
 4. Reply from phone B with `offline reply`.
 5. Show the first message changing from `sent` to `received`.
-6. Type `/join field_ops`, then send a short room message.
-7. Type `/who` and show the local peer notice.
-8. Open the peer row and show the safety number.
-9. Tap `Trust`, compare the safety number, and confirm.
-10. Type `/msg <peer> encrypted hello` to send a private message.
-11. Attach a small text file in DM mode.
-12. Show the receiver's file strip with save and share actions.
-13. Open diagnostics and show transport/key status.
-14. Enable background mesh mode and show the persistent notification.
+6. Type `/join field_ops`, then `/lock demo-passphrase` on phone A.
+7. Send a room message and show phone B receiving a locked placeholder.
+8. Type `/lock demo-passphrase` on phone B and show the message unlock.
+9. Type `/who` and show the local peer notice.
+10. Open the peer row and show the safety number.
+11. Tap `Trust`, compare the safety number, and confirm.
+12. Type `/msg <peer> encrypted hello` to send a private message.
+13. Attach a small text file in DM mode.
+14. Show the receiver's file strip with save and share actions.
+15. Open diagnostics and show transport/key status.
+16. Enable background mesh mode and show the persistent notification.
 
 ## Voiceover beats
 
 - "No server, no account, no internet."
 - "LAN mode works through a local router or hotspot."
 - "Wi-Fi Direct is included for phone-to-phone links."
-- "Packets are signed; direct messages and direct files are encrypted."
+- "Packets are signed; private rooms, direct messages, and direct files are encrypted."
+- "A phone that joins late can unlock buffered private-room packets after entering the passphrase."
 - "Delivery receipts come back through the same local mesh."
 - "Slash commands make it feel like a tiny local IRC network."
 - "Diagnostics make device testing and issue reports easier."

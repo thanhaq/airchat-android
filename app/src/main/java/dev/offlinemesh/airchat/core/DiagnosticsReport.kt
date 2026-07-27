@@ -12,6 +12,7 @@ data class DiagnosticsSnapshot(
     val nickname: String,
     val identityKeySecurity: IdentityKeySecurity,
     val channel: String,
+    val privateRoomEnabled: Boolean,
     val directPeerName: String?,
     val backgroundMeshEnabled: Boolean,
     val peerCount: Int,
@@ -33,6 +34,7 @@ object DiagnosticsReportFormatter {
         appendLine("Peer: ${snapshot.nickname} / ${snapshot.localPeerId}")
         appendLine("Identity key: ${identityKeyLabel(snapshot.identityKeySecurity)}")
         appendLine("Conversation: ${conversationLabel(snapshot)}")
+        appendLine("Private room: ${if (snapshot.privateRoomEnabled) "on" else "off"}")
         appendLine("Background mesh: ${if (snapshot.backgroundMeshEnabled) "on" else "off"}")
         appendLine("Peers visible: ${snapshot.peerCount}")
         appendLine("Visible messages: ${snapshot.visibleMessageCount}")

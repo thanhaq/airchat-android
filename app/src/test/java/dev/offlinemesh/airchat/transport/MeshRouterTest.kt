@@ -3,6 +3,7 @@ package dev.offlinemesh.airchat.transport
 import dev.offlinemesh.airchat.crypto.CryptoBox
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.crypto.MeshIdentity
+import dev.offlinemesh.airchat.crypto.RoomCrypto
 import dev.offlinemesh.airchat.model.DeliveryState
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerConnectionState
@@ -19,6 +20,9 @@ import dev.offlinemesh.airchat.protocol.FileTransferCodec
 import dev.offlinemesh.airchat.protocol.MeshPacket
 import dev.offlinemesh.airchat.protocol.MeshPacketCodec
 import dev.offlinemesh.airchat.protocol.PacketType
+import dev.offlinemesh.airchat.protocol.RoomEncryptedPayload
+import dev.offlinemesh.airchat.protocol.RoomEnvelope
+import dev.offlinemesh.airchat.protocol.RoomEnvelopeKind
 import dev.offlinemesh.airchat.store.InMemoryChatStore
 import dev.offlinemesh.airchat.store.InMemoryCourierStore
 import dev.offlinemesh.airchat.store.InMemoryPeerTrustStore
@@ -55,6 +59,100 @@ class MeshRouterTest {
         assertEquals(1, router.messages.value.size)
         assertEquals(DeliveryState.Pending, router.messages.value.single().state)
         assertEquals(1, store.loadOutbox().size)
+    }
+
+    @Test
+    fun sendPrivateRoomMessageBroadcastsCiphertextOnly() = runTest {
+        val identity = TestIdentity("alice")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = identity,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.setRoomPassphrase(channel = "field_ops", passphrase = "shared field key")
+
+        router.sendChannelMessage(channel = "field_ops", body = "move at dawn")
+
+        val packet = transport.broadcastedPackets.single()
+        val payload = MeshPacketCodec.decodePayload<RoomEncryptedPayload>(packet.payload)
+        val decrypted = RoomCrypto.decrypt(
+            channel = "field_ops",
+            passphrase = "shared field key",
+            packetId = packet.id,
+            payload = payload ?: error("missing room payload")
+        )
+        val envelope = MeshPacketCodec.decodePayload<RoomEnvelope>(String(decrypted ?: ByteArray(0)))
+        assertEquals(PacketType.RoomEncrypted, packet.type)
+        assertTrue(!packet.payload.contains("move at dawn"))
+        assertEquals(RoomEnvelopeKind.Text, envelope?.kind)
+        assertEquals("move at dawn", envelope?.body)
+        assertEquals("move at dawn", router.messages.value.single().body)
+    }
+
+    @Test
+    fun receivesPrivateRoomMessageWithMatchingPassphrase() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        router.setRoomPassphrase(channel = "field_ops", passphrase = "shared field key")
+        advanceUntilIdle()
+        val packet = signedRoomPacket(
+            identity = alice,
+            id = "room-secret-1",
+            channel = "field_ops",
+            passphrase = "shared field key",
+            envelope = RoomEnvelope(RoomEnvelopeKind.Text, "rally at point two")
+        )
+
+        transport.emitPacket(packet, peerFor(alice))
+        advanceUntilIdle()
+
+        assertEquals("rally at point two", router.messages.value.single().body)
+        assertEquals(DeliveryState.Verified, router.messages.value.single().state)
+        assertTrue(transport.broadcastedPackets.any { it.type == PacketType.Ack })
+    }
+
+    @Test
+    fun buffersPrivateRoomMessageUntilPassphraseIsEntered() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        val packet = signedRoomPacket(
+            identity = alice,
+            id = "room-secret-buffered",
+            channel = "field_ops",
+            passphrase = "shared field key",
+            envelope = RoomEnvelope(RoomEnvelopeKind.Text, "cached until unlock")
+        )
+
+        transport.emitPacket(packet, peerFor(alice))
+        advanceUntilIdle()
+        assertEquals(DeliveryState.Locked, router.messages.value.single().state)
+        assertTrue(!router.messages.value.single().body.contains("cached until unlock"))
+
+        router.setRoomPassphrase(channel = "field_ops", passphrase = "shared field key")
+        advanceUntilIdle()
+
+        assertEquals(1, router.messages.value.size)
+        assertEquals("cached until unlock", router.messages.value.single().body)
+        assertEquals(DeliveryState.Verified, router.messages.value.single().state)
     }
 
     @Test
@@ -511,6 +609,32 @@ class MeshRouterTest {
     }
 
     @Test
+    fun sendPrivateRoomFileUsesEncryptedRoomPacketsOnly() = runTest {
+        val alice = TestIdentity("alice")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.setRoomPassphrase(channel = "field_ops", passphrase = "shared field key")
+
+        val delivered = router.sendChannelFile(
+            channel = "field_ops",
+            fileName = "route-plan.txt",
+            mimeType = "text/plain",
+            bytes = "private file payload".toByteArray()
+        )
+
+        assertTrue(delivered)
+        assertTrue(transport.broadcastedPackets.isNotEmpty())
+        assertTrue(transport.broadcastedPackets.all { it.type == PacketType.RoomEncrypted })
+        assertTrue(transport.broadcastedPackets.none { it.payload.contains("route-plan") })
+        assertEquals("Sent private-room", router.messages.value.single().body.take(17))
+    }
+
+    @Test
     fun loadsReceivedFilesFromStoreOnStartup() = runTest {
         val identity = TestIdentity("alice")
         val storedFile = ReceivedFile(
@@ -842,6 +966,28 @@ class MeshRouterTest {
             type = PacketType.Direct,
             channel = "dm:${recipient.peerId}",
             payload = MeshPacketCodec.encodePayload(payload)
+        )
+    }
+
+    private fun signedRoomPacket(
+        identity: TestIdentity,
+        id: String,
+        channel: String,
+        passphrase: String,
+        envelope: RoomEnvelope
+    ): MeshPacket {
+        val encrypted = RoomCrypto.encrypt(
+            channel = channel,
+            passphrase = passphrase,
+            packetId = id,
+            plaintext = MeshPacketCodec.encodePayload(envelope).toByteArray()
+        )
+        return signedPacket(
+            identity = identity,
+            id = id,
+            type = PacketType.RoomEncrypted,
+            channel = channel,
+            payload = MeshPacketCodec.encodePayload(encrypted)
         )
     }
 

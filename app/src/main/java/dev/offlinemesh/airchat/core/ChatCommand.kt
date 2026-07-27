@@ -6,6 +6,8 @@ sealed interface ChatCommand {
     data object LeaveDirect : ChatCommand
     data class DirectMessage(val target: String, val body: String) : ChatCommand
     data class Action(val body: String) : ChatCommand
+    data class LockRoom(val passphrase: String) : ChatCommand
+    data object UnlockRoom : ChatCommand
     data object ShowPeers : ChatCommand
     data object ShowHelp : ChatCommand
     data class Unknown(val name: String) : ChatCommand
@@ -25,6 +27,13 @@ object ChatCommandParser {
                 if (room.isBlank()) ChatCommand.Unknown(name) else ChatCommand.JoinRoom(room)
             }
 
+            "lock", "key" -> if (rest.isBlank()) {
+                ChatCommand.Unknown(name)
+            } else {
+                ChatCommand.LockRoom(rest.take(MAX_PASSPHRASE_LENGTH))
+            }
+
+            "unlock", "clear-key" -> ChatCommand.UnlockRoom
             "room", "lobby" -> ChatCommand.LeaveDirect
             "msg", "dm", "w", "tell" -> directMessage(name, rest)
             "me" -> if (rest.isBlank()) ChatCommand.Unknown(name) else ChatCommand.Action(rest.take(MAX_MESSAGE_LENGTH))
@@ -55,4 +64,5 @@ object ChatCommandParser {
     private const val DEFAULT_CHANNEL = "lobby"
     private const val MAX_CHANNEL_LENGTH = 32
     private const val MAX_MESSAGE_LENGTH = 2_000
+    private const val MAX_PASSPHRASE_LENGTH = 256
 }

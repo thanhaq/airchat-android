@@ -4,6 +4,8 @@ import dev.offlinemesh.airchat.crypto.CryptoBox
 import dev.offlinemesh.airchat.crypto.EncryptedPayload
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.crypto.MeshIdentity
+import dev.offlinemesh.airchat.crypto.RoomCrypto
+import dev.offlinemesh.airchat.crypto.RoomKey
 import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.CourierPacket
 import dev.offlinemesh.airchat.model.DeliveryState
@@ -27,6 +29,9 @@ import dev.offlinemesh.airchat.protocol.MessageDeduper
 import dev.offlinemesh.airchat.protocol.PacketGuard
 import dev.offlinemesh.airchat.protocol.PacketGuardDecision
 import dev.offlinemesh.airchat.protocol.PacketType
+import dev.offlinemesh.airchat.protocol.RoomEncryptedPayload
+import dev.offlinemesh.airchat.protocol.RoomEnvelope
+import dev.offlinemesh.airchat.protocol.RoomEnvelopeKind
 import dev.offlinemesh.airchat.store.ChatStore
 import dev.offlinemesh.airchat.store.CourierStore
 import dev.offlinemesh.airchat.store.InMemoryChatStore
@@ -67,6 +72,9 @@ class MeshRouter(
     private val fileAssemblies = mutableMapOf<String, PendingFileAssembly>()
     private val courierPackets = loadInitialCourierPackets()
     private val courierCount = MutableStateFlow(courierPackets.size)
+    private val roomKeys = mutableMapOf<String, RoomKey>()
+    private val encryptedRoomChannels = MutableStateFlow<Set<String>>(emptySet())
+    private val lockedRoomPackets = linkedMapOf<String, MeshPacket>()
     private val routerJobs = mutableListOf<Job>()
     private var started = false
 
@@ -81,6 +89,7 @@ class MeshRouter(
     val receivedFiles: StateFlow<List<ReceivedFile>> = receivedFileLog.asStateFlow()
     val transportStatuses: StateFlow<List<TransportStatus>> = statuses.asStateFlow()
     val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
+    val privateRoomChannels: StateFlow<Set<String>> = encryptedRoomChannels.asStateFlow()
 
     fun start() {
         if (started) return
@@ -143,6 +152,10 @@ class MeshRouter(
         fileAssemblies.clear()
         courierPackets.clear()
         courierCount.value = 0
+        roomKeys.values.forEach { it.bytes.fill(0) }
+        roomKeys.clear()
+        encryptedRoomChannels.value = emptySet()
+        lockedRoomPackets.clear()
         courierStore.clear()
         chatStore.clear()
         receivedFileStore.clear()
@@ -177,6 +190,26 @@ class MeshRouter(
         )
     }
 
+    fun setRoomPassphrase(channel: String, passphrase: String): Boolean {
+        val normalized = channel.trim()
+        val trimmedPassphrase = passphrase.trim()
+        if (normalized.isBlank() || trimmedPassphrase.isBlank()) return false
+        roomKeys.remove(normalized)?.bytes?.fill(0)
+        roomKeys[normalized] = RoomCrypto.deriveRoomKey(normalized, trimmedPassphrase)
+        encryptedRoomChannels.value = roomKeys.keys.toSet()
+        scope.launch {
+            unlockBufferedRoomPackets(normalized)
+        }
+        return true
+    }
+
+    fun clearRoomPassphrase(channel: String): Boolean {
+        val removed = roomKeys.remove(channel.trim())
+        removed?.bytes?.fill(0)
+        encryptedRoomChannels.value = roomKeys.keys.toSet()
+        return removed != null
+    }
+
     fun forgetTrustedPeer(peerId: String) {
         peerTrustStore.forgetPeer(peerId)
         trustedPeers.value = peerTrustStore.loadTrustedPeers()
@@ -184,7 +217,16 @@ class MeshRouter(
     }
 
     suspend fun sendChannelMessage(channel: String, body: String) {
-        val packet = signedPacket(
+        val packet = roomKeys[channel]?.let { roomKey ->
+            encryptedRoomPacket(
+                channel = channel,
+                roomKey = roomKey,
+                envelope = RoomEnvelope(
+                    kind = RoomEnvelopeKind.Text,
+                    body = body
+                )
+            )
+        } ?: signedPacket(
             type = PacketType.Chat,
             channel = channel,
             payload = body,
@@ -196,7 +238,8 @@ class MeshRouter(
             packet = packet,
             state = if (delivered) DeliveryState.Sent else DeliveryState.Pending,
             hopCount = 0,
-            isLocal = true
+            isLocal = true,
+            bodyOverride = body
         )
         if (!delivered) queueOutbox(packet, targetPeerId = null)
     }
@@ -291,21 +334,46 @@ class MeshRouter(
             mimeType = mimeType,
             bytes = bytes
         )
-        val manifestPacket = signedPacket(
-            id = "file:${plan.manifest.transferId}:manifest",
-            type = PacketType.FileManifest,
-            channel = channel,
-            payload = MeshPacketCodec.encodePayload(plan.manifest),
-            ttl = DEFAULT_TTL
-        )
-        val chunkPackets = plan.chunks.map { chunk ->
-            signedPacket(
-                id = "file:${chunk.transferId}:chunk:${chunk.index}",
-                type = PacketType.FileChunk,
+        val roomKey = roomKeys[channel]
+        val manifestPacket = if (roomKey != null) {
+            encryptedRoomPacket(
+                id = "efile:${plan.manifest.transferId}:manifest",
                 channel = channel,
-                payload = MeshPacketCodec.encodePayload(chunk),
+                roomKey = roomKey,
+                envelope = RoomEnvelope(
+                    kind = RoomEnvelopeKind.FileManifest,
+                    body = MeshPacketCodec.encodePayload(plan.manifest)
+                )
+            )
+        } else {
+            signedPacket(
+                id = "file:${plan.manifest.transferId}:manifest",
+                type = PacketType.FileManifest,
+                channel = channel,
+                payload = MeshPacketCodec.encodePayload(plan.manifest),
                 ttl = DEFAULT_TTL
             )
+        }
+        val chunkPackets = plan.chunks.map { chunk ->
+            if (roomKey != null) {
+                encryptedRoomPacket(
+                    id = "efile:${chunk.transferId}:chunk:${chunk.index}",
+                    channel = channel,
+                    roomKey = roomKey,
+                    envelope = RoomEnvelope(
+                        kind = RoomEnvelopeKind.FileChunk,
+                        body = MeshPacketCodec.encodePayload(chunk)
+                    )
+                )
+            } else {
+                signedPacket(
+                    id = "file:${chunk.transferId}:chunk:${chunk.index}",
+                    type = PacketType.FileChunk,
+                    channel = channel,
+                    payload = MeshPacketCodec.encodePayload(chunk),
+                    ttl = DEFAULT_TTL
+                )
+            }
         }
         val packets = listOf(manifestPacket) + chunkPackets
         var delivered = true
@@ -321,7 +389,11 @@ class MeshRouter(
             state = if (delivered) DeliveryState.Sent else DeliveryState.Pending,
             hopCount = 0,
             isLocal = true,
-            bodyOverride = "Sent file: ${plan.manifest.fileName} (${formatBytes(plan.manifest.totalBytes)})"
+            bodyOverride = if (roomKey != null) {
+                "Sent private-room file: ${plan.manifest.fileName} (${formatBytes(plan.manifest.totalBytes)})"
+            } else {
+                "Sent file: ${plan.manifest.fileName} (${formatBytes(plan.manifest.totalBytes)})"
+            }
         )
         return delivered
     }
@@ -364,6 +436,7 @@ class MeshRouter(
                 sendAckFor(packet, verified)
             }
 
+            PacketType.RoomEncrypted -> handleRoomEncryptedPacket(packet, verified)
             PacketType.Direct -> handleDirectPacket(packet, verified)
             PacketType.FileManifest -> handleFileManifest(packet, verified)
             PacketType.FileChunk -> handleFileChunk(packet, verified)
@@ -389,6 +462,100 @@ class MeshRouter(
         val trusted = trustedPeers.value[peer.id] ?: return PeerTrustState.Unknown
         val publicKey = peer.publicKey ?: return PeerTrustState.Unknown
         return if (trusted.publicKey == publicKey) PeerTrustState.Trusted else PeerTrustState.KeyChanged
+    }
+
+    private suspend fun handleRoomEncryptedPacket(
+        packet: MeshPacket,
+        verified: Boolean,
+        allowBuffer: Boolean = true
+    ): Boolean {
+        if (!verified) return false
+        val roomKey = roomKeys[packet.channel]
+        val encryptedPayload = MeshPacketCodec.decodePayload<RoomEncryptedPayload>(packet.payload) ?: return false
+        if (roomKey == null) {
+            if (allowBuffer) bufferLockedRoomPacket(packet)
+            return false
+        }
+        val plaintext = RoomCrypto.decrypt(
+            roomKey = roomKey,
+            packetId = packet.id,
+            payload = encryptedPayload
+        ) ?: run {
+            if (allowBuffer) bufferLockedRoomPacket(packet)
+            return false
+        }
+        lockedRoomPackets.remove(packet.id)
+        val envelope = MeshPacketCodec.decodePayload<RoomEnvelope>(String(plaintext, Charsets.UTF_8))
+        if (envelope == null) {
+            appendMessage(
+                packet = packet,
+                state = DeliveryState.Verified,
+                hopCount = DEFAULT_TTL - packet.ttl,
+                isLocal = false,
+                bodyOverride = String(plaintext, Charsets.UTF_8)
+            )
+            sendAckFor(packet, verified = true)
+            return true
+        }
+        when (envelope.kind) {
+            RoomEnvelopeKind.Text -> {
+                appendMessage(
+                    packet = packet,
+                    state = DeliveryState.Verified,
+                    hopCount = DEFAULT_TTL - packet.ttl,
+                    isLocal = false,
+                    bodyOverride = envelope.body
+                )
+                sendAckFor(packet, verified = true)
+            }
+
+            RoomEnvelopeKind.FileManifest -> {
+                val manifest = MeshPacketCodec.decodePayload<FileManifest>(envelope.body) ?: return false
+                acceptFileManifest(
+                    transferId = manifest.transferId,
+                    manifest = manifest,
+                    senderId = packet.originId,
+                    senderName = packet.originName,
+                    channel = packet.channel,
+                    verified = true
+                )
+            }
+
+            RoomEnvelopeKind.FileChunk -> {
+                val chunk = MeshPacketCodec.decodePayload<FileChunk>(envelope.body) ?: return false
+                acceptFileChunk(
+                    transferId = chunk.transferId,
+                    chunk = chunk,
+                    senderId = packet.originId,
+                    senderName = packet.originName,
+                    channel = packet.channel,
+                    verified = true
+                )
+            }
+        }
+        return true
+    }
+
+    private fun bufferLockedRoomPacket(packet: MeshPacket) {
+        lockedRoomPackets[packet.id] = packet
+        while (lockedRoomPackets.size > MAX_LOCKED_ROOM_PACKETS) {
+            val eldest = lockedRoomPackets.keys.firstOrNull() ?: break
+            lockedRoomPackets.remove(eldest)
+        }
+        appendMessage(
+            packet = packet,
+            state = DeliveryState.Locked,
+            hopCount = DEFAULT_TTL - packet.ttl,
+            isLocal = false,
+            bodyOverride = "Encrypted room message. Use /lock passphrase to unlock this room."
+        )
+    }
+
+    private suspend fun unlockBufferedRoomPackets(channel: String) {
+        val candidates = lockedRoomPackets.values.filter { it.channel == channel }
+        candidates.forEach { packet ->
+            handleRoomEncryptedPacket(packet, verified = true, allowBuffer = false)
+        }
     }
 
     private suspend fun handleDirectPacket(packet: MeshPacket, verified: Boolean) {
@@ -621,7 +788,7 @@ class MeshRouter(
             hopCount = hopCount.coerceAtLeast(0),
             isLocal = isLocal
         )
-        messageLog.value = (messageLog.value + message).takeLast(MAX_MESSAGES)
+        messageLog.value = (messageLog.value.filterNot { it.id == message.id } + message).takeLast(MAX_MESSAGES)
         chatStore.saveMessages(messageLog.value)
     }
 
@@ -833,6 +1000,26 @@ class MeshRouter(
         return unsigned.copy(signature = localIdentity.sign(MeshPacketCodec.signingBytes(unsigned)))
     }
 
+    private fun encryptedRoomPacket(
+        id: String = UUID.randomUUID().toString(),
+        channel: String,
+        roomKey: RoomKey,
+        envelope: RoomEnvelope
+    ): MeshPacket {
+        val encryptedPayload = RoomCrypto.encrypt(
+            roomKey = roomKey,
+            packetId = id,
+            plaintext = MeshPacketCodec.encodePayload(envelope).toByteArray(Charsets.UTF_8)
+        )
+        return signedPacket(
+            id = id,
+            type = PacketType.RoomEncrypted,
+            channel = channel,
+            payload = MeshPacketCodec.encodePayload(encryptedPayload),
+            ttl = DEFAULT_TTL
+        )
+    }
+
     private fun encryptedDirectPacket(
         peerId: String,
         peerPublicKey: String,
@@ -885,6 +1072,7 @@ class MeshRouter(
         const val MAX_OUTBOX_ITEMS = 1_024
         const val MAX_RECEIVED_FILES = 50
         const val MAX_COURIER_PACKETS = 256
+        const val MAX_LOCKED_ROOM_PACKETS = 128
         const val OUTBOX_TTL_MS = 24L * 60L * 60L * 1_000L
         const val COURIER_TTL_MS = 15L * 60L * 1_000L
         const val DIRECT_CHANNEL_PREFIX = "dm:"

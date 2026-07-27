@@ -32,10 +32,13 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | LAN message both directions |  |  |
 | Wi-Fi Direct discovery |  |  |
 | Wi-Fi Direct link |  |  |
+| Private room lock/unlock |  |  |
+| Private room encrypted text |  |  |
 | Safety number compare |  |  |
 | Encrypted DM |  |  |
 | ACK changes sender state to received |  |  |
 | Public file transfer |  |  |
+| Private room file transfer |  |  |
 | Encrypted DM file transfer |  |  |
 | Received-file persistence after restart |  |  |
 | Courier queue persists after restart |  |  |

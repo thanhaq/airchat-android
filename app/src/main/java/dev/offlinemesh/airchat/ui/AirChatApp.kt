@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Refresh
@@ -312,6 +313,7 @@ private fun AirChatScreen(
         bottomBar = {
             MessageComposer(
                 channel = state.channel,
+                privateRoomEnabled = state.privateRoomEnabled,
                 message = state.composer,
                 directPeer = state.directPeer,
                 onChannelChanged = onChannelChanged,
@@ -337,6 +339,15 @@ private fun AirChatScreen(
                         label = { Text("${status.name}: ${status.state.name}") },
                         leadingIcon = {
                             Icon(Icons.Default.Wifi, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                }
+                if (state.privateRoomEnabled && state.directPeer == null) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Private #${state.channel}") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
                 }
@@ -574,6 +585,7 @@ private fun MessageBubble(message: ChatMessage) {
 @Composable
 private fun MessageComposer(
     channel: String,
+    privateRoomEnabled: Boolean,
     message: String,
     directPeer: Peer?,
     onChannelChanged: (String) -> Unit,
@@ -621,7 +633,14 @@ private fun MessageComposer(
                         value = channel,
                         onValueChange = onChannelChanged,
                         singleLine = true,
-                        label = { Text("Channel") }
+                        label = { Text(if (privateRoomEnabled) "Private" else "Channel") },
+                        leadingIcon = if (privateRoomEnabled) {
+                            {
+                                Icon(Icons.Default.Lock, contentDescription = null)
+                            }
+                        } else {
+                            null
+                        }
                     )
                 }
                 OutlinedTextField(
@@ -672,6 +691,7 @@ private fun deliveryLabel(message: ChatMessage): String {
         DeliveryState.Received -> "received"
         DeliveryState.Verified -> "verified"
         DeliveryState.Unverified -> "unverified"
+        DeliveryState.Locked -> "locked"
     }
     val visibility = if (message.channel.startsWith("dm:")) "direct" else message.channel
     val hopLabel = if (message.hopCount > 0) " / ${message.hopCount} hops" else ""
@@ -764,6 +784,7 @@ private fun diagnosticsSnapshot(
         nickname = state.nickname,
         identityKeySecurity = identityKeySecurity,
         channel = state.channel,
+        privateRoomEnabled = state.privateRoomEnabled,
         directPeerName = state.directPeer?.name,
         backgroundMeshEnabled = backgroundMeshEnabled,
         peerCount = state.peers.size,

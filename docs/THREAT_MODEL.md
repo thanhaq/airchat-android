@@ -8,6 +8,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Work over Wi-Fi Direct where Android hardware and permissions allow it.
 - Authenticate packet origins.
 - Encrypt direct message bodies.
+- Encrypt optional passphrase-locked room traffic.
 - Keep relays simple and untrusted.
 - Support bounded opportunistic store-and-forward for verified relay packets.
 
@@ -15,7 +16,8 @@ AirChat is built for local communication when internet access is unavailable, ce
 
 - Hiding that two devices are nearby.
 - Hiding timing, packet size, or relay path metadata.
-- Protecting public channel messages from local peers.
+- Protecting public channel messages from local peers unless users explicitly lock that room.
+- Recovering forgotten private-room passphrases.
 - Guaranteeing hardware-backed identity keys on every Android device.
 - Background delivery under every OEM battery policy.
 
@@ -25,6 +27,8 @@ AirChat is built for local communication when internet access is unavailable, ce
 - On Android 12+ new identity keys prefer Android Keystore and are non-exportable when compatible signing and ECDH are available.
 - Direct message bodies use ephemeral ECDH and AES-GCM.
 - Direct-file manifests and chunks are wrapped inside encrypted direct packets.
+- Private-room text, file manifests, and file chunks are encrypted with an in-memory AES-GCM key derived from the room passphrase and channel name.
+- Locked-room packets received before a key is entered are buffered only in memory for the running process.
 - Identity material, messages, outbox entries, courier relay packets, trust records, received-file metadata, and encrypted received-file blobs are excluded from Android backup and device transfer.
 - Message history, outbox JSON, courier relay packets, trust records, received-file metadata, and received-file blobs are encrypted with Android Keystore AES-GCM before persistence.
 - Panic wipe clears message history, outbox, peer cache, identity data on disk, and rotates the in-memory identity for the running process.
@@ -39,7 +43,9 @@ AirChat is built for local communication when internet access is unavailable, ce
 
 - Device names and Wi-Fi Direct metadata may identify users.
 - Public channels are readable by nearby peers.
-- Public-channel file contents are readable by nearby peers while in transit; direct-file contents are encrypted per packet.
+- Public-channel file contents are readable by nearby peers while in transit; private-room and direct-file contents are encrypted per packet.
+- Private-room passphrases need enough entropy to resist offline guessing from captured packets.
+- Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
 - Encrypted courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.
 - Some Android 12+ devices may still use Android Keystore software backing or app-private software identity fallback when hardware-backed signing plus ECDH are unavailable.

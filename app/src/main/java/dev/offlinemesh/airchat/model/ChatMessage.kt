@@ -21,5 +21,6 @@ enum class DeliveryState {
     Sent,
     Received,
     Verified,
-    Unverified
+    Unverified,
+    Locked
 }

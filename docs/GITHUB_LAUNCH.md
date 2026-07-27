@@ -5,8 +5,8 @@ Use this checklist before making the repository public or posting the first demo
 ## Repository Setup
 
 - Repository name: `airchat-android` or `offline-mesh-chat-android`.
-- Description: `Offline-first Android Wi-Fi mesh messenger with signed packets, encrypted DMs, file transfer, and no server.`
-- Suggested topics: `android`, `kotlin`, `jetpack-compose`, `wifi-direct`, `mesh-network`, `offline-first`, `p2p`, `e2e-encryption`, `messaging`, `android-nsd`.
+- Description: `Offline-first Android Wi-Fi mesh messenger with private rooms, encrypted DMs, file transfer, and no server.`
+- Suggested topics: `android`, `kotlin`, `jetpack-compose`, `wifi-direct`, `mesh-network`, `offline-first`, `p2p`, `e2e-encryption`, `messaging`, `android-nsd`, `local-first`.
 - Enable Issues and Discussions.
 - Set the social preview to `art/social-card.svg` or an exported PNG version of it.
 
@@ -53,12 +53,12 @@ To publish and trigger the draft release workflow with a tag:
 
 - Record two physical Android phones.
 - Show internet disabled while Wi-Fi remains connected.
-- Show `/join`, `/who`, encrypted DM, file receive/save/share, diagnostics, and background mesh notification.
+- Show `/join`, `/lock`, a locked private-room message unlocking after the second phone enters the passphrase, encrypted DM, file receive/save/share, diagnostics, and background mesh notification.
 - Keep the video under 60 seconds for social posting.
 
 ## Honest Limitations
 
-- Public channels are visible to local peers.
+- Public channels are visible to local peers; use `/lock` before sending sensitive room traffic.
 - Android Keystore identity mode requires Android 12+ and hardware backing still depends on device support; older or incompatible devices fall back to app-private software keys.
 - Wi-Fi Direct behavior varies by Android vendor.
 - Real disaster-use security needs more review and field testing.

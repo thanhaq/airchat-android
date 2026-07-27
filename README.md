@@ -18,6 +18,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Wi-Fi Direct peer discovery and connection flow.
 - Signed mesh packets using per-install P-256 identity keys.
 - Encrypted direct messages between peers with known public keys.
+- Passphrase-locked private rooms for encrypted group text and file transfer.
 - Encrypted local message and outbox persistence through Android Keystore AES-GCM.
 - Foreground background mesh mode so discovery and relay can stay alive after leaving the app.
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
@@ -95,6 +96,8 @@ For direct messages:
 Composer commands:
 
 - `/join room` or `/j room` switches to a public channel.
+- `/lock passphrase` encrypts the current room with a shared passphrase held only in memory.
+- `/unlock` clears the current room key from this device.
 - `/room` or `/lobby` leaves the current DM and returns to room mode.
 - `/msg peer text` or `/dm peer text` sends an encrypted direct message to a matching peer name or peer id prefix.
 - `/me action` sends an action-style message to the active conversation.
@@ -113,7 +116,7 @@ For files:
 1. Stay in a public channel, or select a peer with `DM`.
 2. Tap the attach icon in the message composer.
 3. Pick a file up to 10 MB.
-4. Public files use room packets; DM files are wrapped inside encrypted direct packets.
+4. Public files use room packets; private-room files use encrypted room packets; DM files are wrapped inside encrypted direct packets.
 5. Peers reassemble the transfer when every chunk arrives and the SHA-256 hash matches.
 6. Tap the save icon beside a received file to write it to device storage, or the share icon to send it through Android's share sheet.
 
@@ -166,12 +169,13 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Security model
 
-AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. The public channel is intentionally visible to local peers, similar to an IRC room on a local mesh.
+AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Private rooms derive an in-memory AES-GCM key from the room passphrase and channel name, then encrypt text, file manifests, and file chunks per packet with fresh nonces. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. Public channels are intentionally visible to local peers, similar to IRC rooms on a local mesh.
 
 Next security milestones:
 
 - Add a Noise-style session handshake for direct messages.
 - Add stronger transport binding and QR safety-number verification.
+- Add passphrase strength hints and private-room key rotation UX.
 
 ## Roadmap
 

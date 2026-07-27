@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, trust, and key-change behavior.
 
 ## LAN field test
 
@@ -65,13 +65,26 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 5. Confirm the sender changes the DM from sent to received only after the recipient receives it.
 6. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
 
+## Private room test
+
+1. On phone A and phone B, type `/join field_ops`.
+2. On phone A, type `/lock shared-field-passphrase`.
+3. Send a room message from phone A and confirm phone B shows a locked message placeholder before it has the passphrase.
+4. On phone B, type `/lock shared-field-passphrase`.
+5. Confirm phone B unlocks the buffered message and marks it verified.
+6. Send a reply from phone B and confirm phone A receives it as verified.
+7. Send a file while both phones are in the locked room and confirm the receiver reassembles it.
+8. Type `/unlock` on phone B, send another private-room message from phone A, and confirm phone B shows it as locked until the passphrase is re-entered.
+
 ## Slash command test
 
 1. Type `/join field_ops` and confirm the room changes locally.
-2. Type `/who` and confirm the visible peer list appears as a local notice.
-3. Type `/msg <peer name or id prefix> command test` and confirm the peer receives it in DM mode.
-4. Type `/me checks relay` and confirm the action text is sent to the active room or DM.
-5. Type `/room` and confirm the composer returns to room mode.
+2. Type `/lock shared-field-passphrase` and confirm the room shows private mode.
+3. Type `/unlock` and confirm the room returns to public mode.
+4. Type `/who` and confirm the visible peer list appears as a local notice.
+5. Type `/msg <peer name or id prefix> command test` and confirm the peer receives it in DM mode.
+6. Type `/me checks relay` and confirm the action text is sent to the active room or DM.
+7. Type `/room` and confirm the composer returns to room mode.
 
 ## File transfer test
 
@@ -80,7 +93,8 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 3. Save the file to device storage and verify its contents.
 4. Share the file through Android's share sheet.
 5. Restart AirChat and confirm the received-file inbox still shows the file.
-6. Repeat in DM mode and confirm file metadata is not visible in raw direct packet payloads during unit tests.
+6. Repeat in private-room mode and confirm file metadata is not visible in raw room packet payloads during unit tests.
+7. Repeat in DM mode and confirm file metadata is not visible in raw direct packet payloads during unit tests.
 
 ## Background mesh test
 
@@ -95,12 +109,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, visible peers, visible messages, visible files, courier queue size, and transport states.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, visible peers, visible messages, visible files, courier queue size, and transport states.
 3. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 
 ## Release sign-off
 
 - Record device model, Android version, and transport used.
 - Attach diagnostics text from both phones.
-- Capture at least one screenshot of LAN chat, Wi-Fi Direct peer list, DM verification, and file inbox.
+- Capture at least one screenshot of LAN chat, private-room locked/unlocked state, Wi-Fi Direct peer list, DM verification, and file inbox.
 - Note failures with logcat output and whether battery saver was enabled.
