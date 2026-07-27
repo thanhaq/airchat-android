@@ -29,6 +29,7 @@
 - Added multi-room switcher UI with unread counts, file counts, private-room markers, and persistent pinned rooms.
 - Added in-app diagnostics report with courier queue size, recent event log, share action, and field-test/GitHub issue details.
 - Added foreground background mesh service with notification controls for longer-lived local discovery and relay.
+- Added privacy-preserving background alerts for new messages and files while background mesh is enabled.
 - Added protocol, threat-model, and Android Wi-Fi documentation.
 - Added real-device test plan for LAN, Wi-Fi Direct, trust, file transfer, and background mesh checks.
 - Added release guide with signing, versioning, and tag checklist.

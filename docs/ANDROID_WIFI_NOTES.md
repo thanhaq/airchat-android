@@ -28,6 +28,8 @@ AirChat includes a foreground service for background mesh mode. When enabled fro
 
 Android may still pause Wi-Fi work during aggressive battery saver modes. For field testing, keep battery saver off and avoid OEM app-killer profiles until transport stability has been measured.
 
+While background mesh is enabled and the AirChat UI is not visible, AirChat can post separate message/file alerts. These alerts intentionally avoid message bodies and file names; they only show the sender and conversation label.
+
 ## Permissions
 
 - Android 13+: `NEARBY_WIFI_DEVICES`.

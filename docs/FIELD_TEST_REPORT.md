@@ -52,6 +52,7 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Courier retention controls |  |  |
 | Courier relay disable/clear |  |  |
 | Background mesh notification |  |  |
+| Background message/file alerts |  |  |
 | Diagnostics share sheet |  |  |
 | Diagnostics recent events |  |  |
 | Panic wipe |  |  |

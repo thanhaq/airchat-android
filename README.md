@@ -20,7 +20,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Encrypted direct messages between peers with known public keys.
 - Passphrase-locked private rooms for encrypted group text and file transfer, with room verification codes and strength hints.
 - Encrypted local message and outbox persistence through Android Keystore AES-GCM.
-- Foreground background mesh mode so discovery and relay can stay alive after leaving the app.
+- Foreground background mesh mode so discovery and relay can stay alive after leaving the app, with privacy-preserving alerts for new messages and files.
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
 - Persistent peer blocklist with UI actions and `/block` / `/unblock` commands.
@@ -150,7 +150,8 @@ For background mesh mode:
 1. Grant notification permission on Android 13+.
 2. Tap the notification icon in the top bar.
 3. AirChat starts a foreground service and keeps LAN/Wi-Fi Direct discovery and relay active.
-4. Tap the same icon again or use `Stop` from the notification to leave background mode.
+4. When the app is not on screen, AirChat can post a generic new-message or new-file alert without message bodies or file names.
+5. Tap the same icon again or use `Stop` from the notification to leave background mode.
 
 For diagnostics:
 

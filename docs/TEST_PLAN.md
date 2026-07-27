@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room ordering, QR verification payloads, diagnostics event logging, trust, peer blocking, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room ordering, QR verification payloads, background alert decisions, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -131,7 +131,9 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 4. Leave AirChat and lock the phone for two minutes.
 5. Send a message from another phone.
 6. Reopen AirChat and confirm the message arrived.
-7. Tap `Stop` in the notification and confirm discovery/relay stops when the activity is not visible.
+7. Confirm the alert says a new AirChat message arrived without showing the message body.
+8. Send a small file and confirm the alert does not show the file name.
+9. Tap `Stop` in the notification and confirm discovery/relay stops when the activity is not visible.
 
 ## Diagnostics test
 

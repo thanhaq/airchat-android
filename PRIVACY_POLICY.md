@@ -29,6 +29,8 @@ Peer blocking is local to the device. AirChat can drop content and stop relaying
 
 Diagnostics reports are created only when the user opens and shares them. The recent event log is intended for debugging and includes metadata such as transport state changes, packet categories, queue events, and guard rejections. It does not intentionally include message bodies, private-room passphrases, or file names.
 
+Background mesh alerts are posted only while background mesh is enabled and the app is not on screen. They identify that a new message or file arrived and show the sender and conversation label, but not message bodies or file names.
+
 ## Android Permissions
 
 AirChat requests Wi-Fi, nearby-device, notification, and legacy location permissions when Android requires them for discovery, Wi-Fi Direct, or foreground background operation. AirChat does not use location permission to collect location history.

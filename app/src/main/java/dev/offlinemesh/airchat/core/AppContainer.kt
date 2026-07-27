@@ -10,6 +10,7 @@ import dev.offlinemesh.airchat.store.PreferencesPeerTrustStore
 import dev.offlinemesh.airchat.store.PreferencesChatStore
 import dev.offlinemesh.airchat.store.PreferencesReceivedFileStore
 import dev.offlinemesh.airchat.store.PreferencesRoomPreferencesStore
+import dev.offlinemesh.airchat.service.BackgroundMeshNotifications
 import dev.offlinemesh.airchat.transport.MeshRouter
 import dev.offlinemesh.airchat.transport.lan.LanTransport
 import dev.offlinemesh.airchat.transport.wifidirect.WifiDirectTransport
@@ -47,6 +48,13 @@ class AppContainer(context: Context) {
         transports = listOf(lanTransport, wifiDirectTransport),
         scope = scope
     )
+    private val backgroundNotifications = BackgroundMeshNotifications(
+        context = appContext,
+        router = router,
+        backgroundMeshEnabled = backgroundMeshState,
+        isUiVisible = { isUiVisible() },
+        scope = scope
+    )
     val backgroundMeshEnabled: StateFlow<Boolean> = backgroundMeshState.asStateFlow()
 
     fun requiredPermissions(): Array<String> {
@@ -66,6 +74,7 @@ class AppContainer(context: Context) {
             uiSessions += 1
             router.start()
         }
+        backgroundNotifications.clearVisibleNotifications()
     }
 
     fun stopUiSession() {
@@ -95,6 +104,7 @@ class AppContainer(context: Context) {
             backgroundMeshState.value = false
             router.stop()
         }
+        backgroundNotifications.stop()
         scope.cancel()
     }
 
@@ -115,4 +125,7 @@ class AppContainer(context: Context) {
             router.stop()
         }
     }
+
+    private fun isUiVisible(): Boolean =
+        synchronized(lifecycleLock) { uiSessions > 0 }
 }

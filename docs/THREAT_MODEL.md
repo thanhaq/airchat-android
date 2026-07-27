@@ -43,6 +43,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - QR safety cards and QR room-code cards make out-of-band comparison easier without transmitting passphrases or private keys.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
 - Blocked peer ids are encrypted at rest and excluded from Android backup; blocked packets are dropped before display, ACK, relay, or courier storage.
+- Background mesh alerts avoid message bodies and file names, showing only sender and conversation labels.
 - Diagnostics recent events are kept in memory and avoid message bodies, private-room passphrases, and file names.
 
 ## Known risks
@@ -56,6 +57,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - QR verification cards are not secrets; they encode fingerprints for comparison, not identity proof by themselves.
 - Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
 - Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
+- System notifications can reveal that AirChat traffic arrived, plus sender names and room labels, to anyone who can see device notifications.
 - Pinned and known room preferences can reveal local workflow patterns if the device is unlocked.
 - Encrypted courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.

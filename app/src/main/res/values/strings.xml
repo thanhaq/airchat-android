@@ -6,4 +6,6 @@
     <string name="background_mesh_title">AirChat mesh is running</string>
     <string name="background_mesh_text">Listening for nearby peers on local Wi-Fi.</string>
     <string name="background_mesh_stop">Stop</string>
+    <string name="mesh_alerts_channel">Mesh alerts</string>
+    <string name="mesh_alerts_channel_description">Alerts for new messages and files while background mesh is running.</string>
 </resources>
