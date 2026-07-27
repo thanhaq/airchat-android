@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -105,7 +107,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun AirChatApp(container: AppContainer) {
-    val viewModel = remember { ChatViewModel(container.router) }
+    val viewModel = remember { ChatViewModel(container.router, container.roomPreferencesStore) }
     DisposableEffect(container) {
         container.startUiSession()
         onDispose { container.stopUiSession() }
@@ -146,6 +148,7 @@ fun AirChatApp(container: AppContainer) {
         onMessageChanged = viewModel::updateComposer,
         onChannelChanged = viewModel::updateChannel,
         onSelectRoom = viewModel::selectRoom,
+        onToggleRoomPinned = viewModel::toggleRoomPinned,
         onShowRoomVerification = {
             state.privateRoomCode?.let { code ->
                 roomVerificationQr = RoomVerificationQr(channel = state.channel, code = code)
@@ -251,6 +254,7 @@ fun AirChatApp(container: AppContainer) {
                     onClick = {
                         container.panicWipe()
                         viewModel.clearDirectPeer()
+                        viewModel.resetRoomsAfterWipe()
                         confirmWipe = false
                     }
                 ) {
@@ -320,6 +324,7 @@ private fun AirChatScreen(
     onMessageChanged: (String) -> Unit,
     onChannelChanged: (String) -> Unit,
     onSelectRoom: (String) -> Unit,
+    onToggleRoomPinned: (String) -> Unit,
     onShowRoomVerification: () -> Unit,
     onSend: () -> Unit,
     onRefresh: () -> Unit,
@@ -425,7 +430,8 @@ private fun AirChatScreen(
             }
             RoomStrip(
                 rooms = state.rooms,
-                onSelectRoom = onSelectRoom
+                onSelectRoom = onSelectRoom,
+                onToggleRoomPinned = onToggleRoomPinned
             )
             PeerStrip(
                 peers = state.peers,
@@ -449,7 +455,8 @@ private fun AirChatScreen(
 @Composable
 private fun RoomStrip(
     rooms: List<RoomSummary>,
-    onSelectRoom: (String) -> Unit
+    onSelectRoom: (String) -> Unit,
+    onToggleRoomPinned: (String) -> Unit
 ) {
     if (rooms.isEmpty()) return
     Surface(
@@ -463,19 +470,42 @@ private fun RoomStrip(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 rooms.take(MAX_ROOM_CHIPS).forEach { room ->
-                    AssistChip(
-                        onClick = { onSelectRoom(room.channel) },
-                        label = { Text(roomChipLabel(room), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        leadingIcon = if (room.isPrivate) {
-                            {
-                                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-                            }
-                        } else {
-                            null
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { onToggleRoomPinned(room.channel) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (room.isPinned) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = if (room.isPinned) {
+                                    "Unpin #${room.channel}"
+                                } else {
+                                    "Pin #${room.channel}"
+                                },
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
-                    )
+                        AssistChip(
+                            onClick = { onSelectRoom(room.channel) },
+                            label = { Text(roomChipLabel(room), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            leadingIcon = if (room.isPinned || room.isPrivate) {
+                                {
+                                    Icon(
+                                        imageVector = if (room.isPinned) Icons.Default.Star else Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else {
+                                null
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -952,6 +982,7 @@ private fun diagnosticsSnapshot(
         peerCount = state.peers.size,
         roomCount = state.rooms.size,
         unreadRoomCount = state.rooms.count { it.unreadCount > 0 },
+        pinnedRoomCount = state.pinnedRoomCount,
         visibleMessageCount = state.messages.size,
         visibleFileCount = state.receivedFiles.size,
         courierQueueSize = state.courierQueueSize,

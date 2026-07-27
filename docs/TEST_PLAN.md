@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, QR verification payloads, diagnostics event logging, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room ordering, QR verification payloads, diagnostics event logging, trust, and key-change behavior.
 
 ## LAN field test
 
@@ -98,10 +98,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 
 1. On phone A, send a message in `lobby`.
 2. Type `/join ops` on both phones.
-3. Send a message from phone B in `lobby` while phone A is viewing `ops`.
-4. Confirm phone A shows an unread count on the `lobby` room chip.
-5. Tap the `lobby` room chip and confirm the unread count clears.
-6. Receive a file in `ops` and confirm the `ops` room chip shows the file count.
+3. Tap the star beside `ops` and confirm the room stays near the front of the strip.
+4. Restart AirChat and confirm the pinned room remains visible.
+5. Send a message from phone B in `lobby` while phone A is viewing `ops`.
+6. Confirm phone A shows an unread count on the `lobby` room chip.
+7. Tap the `lobby` room chip and confirm the unread count clears.
+8. Receive a file in `ops` and confirm the `ops` room chip shows the file count.
 
 ## File transfer test
 
@@ -127,11 +129,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 
 1. Tap the info icon in the top bar.
 2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, transport states, and recent events.
-3. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
-4. Confirm recent events do not include message bodies, private-room passphrases, or file names.
-5. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
-6. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
-7. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, courier queue counts, and recent event categories.
+3. Confirm the report includes pinned room count after pinning a room.
+4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
+5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
+6. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
+7. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
+8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, pinned-room counts, courier queue counts, and recent event categories.
 
 ## Release sign-off
 

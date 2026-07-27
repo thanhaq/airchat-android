@@ -31,6 +31,7 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | LAN discovery |  |  |
 | LAN message both directions |  |  |
 | Room switcher and unread count |  |  |
+| Pinned room persists after restart |  |  |
 | Wi-Fi Direct discovery |  |  |
 | Wi-Fi Direct link |  |  |
 | Private room lock/unlock |  |  |

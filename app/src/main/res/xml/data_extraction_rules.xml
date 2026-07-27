@@ -4,6 +4,7 @@
         <exclude domain="sharedpref" path="airchat_identity.xml" />
         <exclude domain="sharedpref" path="airchat_messages.xml" />
         <exclude domain="sharedpref" path="airchat_peer_trust.xml" />
+        <exclude domain="sharedpref" path="airchat_room_preferences.xml" />
         <exclude domain="sharedpref" path="airchat_received_files.xml" />
         <exclude domain="sharedpref" path="airchat_courier.xml" />
         <exclude domain="file" path="received-files/" />
@@ -12,6 +13,7 @@
         <exclude domain="sharedpref" path="airchat_identity.xml" />
         <exclude domain="sharedpref" path="airchat_messages.xml" />
         <exclude domain="sharedpref" path="airchat_peer_trust.xml" />
+        <exclude domain="sharedpref" path="airchat_room_preferences.xml" />
         <exclude domain="sharedpref" path="airchat_received_files.xml" />
         <exclude domain="sharedpref" path="airchat_courier.xml" />
         <exclude domain="file" path="received-files/" />

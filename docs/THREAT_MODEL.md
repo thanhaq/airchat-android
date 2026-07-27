@@ -30,8 +30,9 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Private-room text, file manifests, and file chunks are encrypted with an in-memory AES-GCM key derived from the room passphrase and channel name.
 - Private-room verification codes let users compare room keys without revealing the passphrase itself.
 - Locked-room packets received before a key is entered are buffered only in memory for the running process.
-- Identity material, messages, outbox entries, courier relay packets, trust records, received-file metadata, and encrypted received-file blobs are excluded from Android backup and device transfer.
+- Identity material, messages, outbox entries, courier relay packets, trust records, room preferences, received-file metadata, and encrypted received-file blobs are excluded from Android backup and device transfer.
 - Message history, outbox JSON, courier relay packets, trust records, received-file metadata, and received-file blobs are encrypted with Android Keystore AES-GCM before persistence.
+- Known-room and pinned-room preferences are encrypted with Android Keystore AES-GCM before persistence.
 - Panic wipe clears message history, outbox, peer cache, identity data on disk, and rotates the in-memory identity for the running process.
 - Relay mutation of TTL/path does not affect origin signatures.
 - Message ids are deduplicated to reduce loops and replay noise.
@@ -53,6 +54,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - QR verification cards are not secrets; they encode fingerprints for comparison, not identity proof by themselves.
 - Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
 - Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
+- Pinned and known room preferences can reveal local workflow patterns if the device is unlocked.
 - Encrypted courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.
 - Some Android 12+ devices may still use Android Keystore software backing or app-private software identity fallback when hardware-backed signing plus ECDH are unavailable.

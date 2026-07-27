@@ -8,6 +8,7 @@ import dev.offlinemesh.airchat.store.PreferencesCourierStore
 import dev.offlinemesh.airchat.store.PreferencesPeerTrustStore
 import dev.offlinemesh.airchat.store.PreferencesChatStore
 import dev.offlinemesh.airchat.store.PreferencesReceivedFileStore
+import dev.offlinemesh.airchat.store.PreferencesRoomPreferencesStore
 import dev.offlinemesh.airchat.transport.MeshRouter
 import dev.offlinemesh.airchat.transport.lan.LanTransport
 import dev.offlinemesh.airchat.transport.wifidirect.WifiDirectTransport
@@ -31,6 +32,7 @@ class AppContainer(context: Context) {
     val peerTrustStore = PreferencesPeerTrustStore(appContext)
     val receivedFileStore = PreferencesReceivedFileStore(appContext)
     val courierStore = PreferencesCourierStore(appContext)
+    val roomPreferencesStore = PreferencesRoomPreferencesStore(appContext)
     val lanTransport = LanTransport(appContext, identityStore, scope)
     val wifiDirectTransport = WifiDirectTransport(appContext, identityStore, scope)
     val router = MeshRouter(
@@ -97,6 +99,7 @@ class AppContainer(context: Context) {
         synchronized(lifecycleLock) {
             router.stop()
             router.clearLocalState()
+            roomPreferencesStore.clear()
             identityStore.wipeFromDisk()
             if (uiSessions > 0 || backgroundMeshState.value) {
                 router.start()

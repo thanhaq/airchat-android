@@ -238,6 +238,7 @@ $summaryFields = @(
     "Peers visible"
     "Rooms visible"
     "Rooms unread"
+    "Rooms pinned"
     "Visible messages"
     "Visible files"
     "Courier queue"

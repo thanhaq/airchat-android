@@ -8,6 +8,8 @@ import dev.offlinemesh.airchat.model.PrivateRoomStatus
 import dev.offlinemesh.airchat.model.ReceivedFile
 import dev.offlinemesh.airchat.model.RoomSummary
 import dev.offlinemesh.airchat.model.TransportStatus
+import dev.offlinemesh.airchat.store.InMemoryRoomPreferencesStore
+import dev.offlinemesh.airchat.store.RoomPreferencesStore
 import dev.offlinemesh.airchat.transport.MeshRouter
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +34,7 @@ data class ChatUiState(
     val messages: List<ChatMessage>,
     val receivedFiles: List<ReceivedFile>,
     val courierQueueSize: Int,
+    val pinnedRoomCount: Int,
     val transportStatuses: List<TransportStatus>,
     val diagnosticEvents: List<DiagnosticEvent>
 )
@@ -61,12 +64,14 @@ private data class RouterCoreState(
 )
 
 class ChatViewModel(
-    private val router: MeshRouter
+    private val router: MeshRouter,
+    private val roomPreferencesStore: RoomPreferencesStore = InMemoryRoomPreferencesStore()
 ) : ViewModel() {
     private val composer = MutableStateFlow("")
     private val channel = MutableStateFlow("lobby")
     private val directPeerId = MutableStateFlow<String?>(null)
-    private val knownRooms = MutableStateFlow(setOf("lobby"))
+    private val pinnedRooms = MutableStateFlow(loadRoomSet(roomPreferencesStore.loadPinnedRooms()))
+    private val knownRooms = MutableStateFlow(loadRoomSet(roomPreferencesStore.loadKnownRooms(), includeLobby = true) + pinnedRooms.value)
     private val roomReadAt = MutableStateFlow(mapOf("lobby" to Long.MAX_VALUE))
 
     private val composerState = combine(composer, channel, directPeerId) { text, channelName, directId ->
@@ -109,8 +114,9 @@ class ChatViewModel(
         composerState,
         routerState,
         knownRooms,
-        roomReadAt
-    ) { composerState, routerState, knownRooms, roomReadAt ->
+        roomReadAt,
+        pinnedRooms
+    ) { composerState, routerState, knownRooms, roomReadAt, pinnedRooms ->
         val sortedPeers = routerState.peers.sortedByDescending { it.lastSeenAt }
         val directPeer = sortedPeers.firstOrNull { it.id == composerState.directPeerId }
         val privateRoom = routerState.privateRooms[composerState.channel]
@@ -121,6 +127,7 @@ class ChatViewModel(
             files = routerState.files,
             privateRooms = routerState.privateRooms,
             knownRooms = knownRooms,
+            pinnedRooms = pinnedRooms,
             selectedChannel = composerState.channel,
             readAtByRoom = roomReadAt
         )
@@ -139,6 +146,7 @@ class ChatViewModel(
             messages = ConversationFilter.apply(routerState.messages, conversation),
             receivedFiles = ConversationFilter.applyFiles(routerState.files, conversation),
             courierQueueSize = routerState.courierQueueSize,
+            pinnedRoomCount = rooms.count { it.isPinned },
             transportStatuses = routerState.statuses,
             diagnosticEvents = routerState.diagnostics
         )
@@ -160,6 +168,7 @@ class ChatViewModel(
             messages = emptyList(),
             receivedFiles = emptyList(),
             courierQueueSize = 0,
+            pinnedRoomCount = 0,
             transportStatuses = emptyList(),
             diagnosticEvents = emptyList()
         )
@@ -183,6 +192,18 @@ class ChatViewModel(
         directPeerId.value = null
         rememberRoom(sanitized)
         markRoomRead(sanitized)
+    }
+
+    fun toggleRoomPinned(room: String) {
+        val sanitized = ChatCommandParser.sanitizeChannel(room)
+        rememberRoom(sanitized)
+        val next = if (sanitized in pinnedRooms.value) {
+            pinnedRooms.value - sanitized
+        } else {
+            pinnedRooms.value + sanitized
+        }
+        pinnedRooms.value = next
+        roomPreferencesStore.savePinnedRooms(next)
     }
 
     fun sendCurrentMessage() {
@@ -322,7 +343,12 @@ class ChatViewModel(
     }
 
     private fun rememberRoom(room: String) {
-        knownRooms.value = knownRooms.value + room
+        val sanitized = ChatCommandParser.sanitizeChannel(room)
+        val next = knownRooms.value + sanitized
+        if (next != knownRooms.value) {
+            knownRooms.value = next
+            roomPreferencesStore.saveKnownRooms(next)
+        }
     }
 
     private fun markRoomRead(room: String) {
@@ -343,6 +369,14 @@ class ChatViewModel(
 
     fun clearDirectPeer() {
         directPeerId.value = null
+    }
+
+    fun resetRoomsAfterWipe() {
+        channel.value = "lobby"
+        directPeerId.value = null
+        knownRooms.value = setOf("lobby")
+        pinnedRooms.value = emptySet()
+        roomReadAt.value = mapOf("lobby" to Long.MAX_VALUE)
     }
 
     fun trustPeer(peer: Peer) {
@@ -375,6 +409,14 @@ class ChatViewModel(
             }
         }
     }
+}
+
+private fun loadRoomSet(rooms: Set<String>, includeLobby: Boolean = false): Set<String> {
+    val initialRooms = if (includeLobby) rooms + "lobby" else rooms
+    return initialRooms
+        .map(ChatCommandParser::sanitizeChannel)
+        .filter { it.isNotBlank() && !it.startsWith("dm:") }
+        .toSet()
 }
 
 private const val COMMAND_HELP =

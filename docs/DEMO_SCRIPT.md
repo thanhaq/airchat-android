@@ -22,15 +22,16 @@ Use this script for a short README GIF, release video, or social post.
 9. Type `/lock demo-passphrase` on phone B and show the same room code plus unlocked message.
 10. Tap the private-room chip and show the QR room-code card.
 11. Type `/code` on one phone, then `/rotate demo-passphrase-2` and show the code change.
-12. Switch rooms and show an unread count clearing when the room chip is opened.
-13. Type `/who` and show the local peer notice.
-14. Open the peer row and show the safety number.
-15. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
-16. Type `/msg <peer> encrypted hello` to send a private message.
-17. Attach a small text file in DM mode.
-18. Show the receiver's file strip with save and share actions.
-19. Open diagnostics and show transport/key status plus recent events.
-20. Enable background mesh mode and show the persistent notification.
+12. Pin the `field_ops` room, restart AirChat, and show the pinned room still visible.
+13. Switch rooms and show an unread count clearing when the room chip is opened.
+14. Type `/who` and show the local peer notice.
+15. Open the peer row and show the safety number.
+16. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
+17. Type `/msg <peer> encrypted hello` to send a private message.
+18. Attach a small text file in DM mode.
+19. Show the receiver's file strip with save and share actions.
+20. Open diagnostics and show transport/key status plus recent events.
+21. Enable background mesh mode and show the persistent notification.
 
 ## Voiceover beats
 
@@ -42,6 +43,7 @@ Use this script for a short README GIF, release video, or social post.
 - "QR room-code cards let people confirm they typed the same passphrase."
 - "QR safety cards make peer-key checks easier without trusting a server."
 - "Room chips make multiple offline channels easy to follow."
+- "Pinned rooms survive restarts, which helps teams keep their working channels ready."
 - "Delivery receipts come back through the same local mesh."
 - "Slash commands make it feel like a tiny local IRC network."
 - "Diagnostics make device testing and issue reports easier."

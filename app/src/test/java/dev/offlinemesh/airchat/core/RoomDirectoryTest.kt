@@ -26,6 +26,7 @@ class RoomDirectoryTest {
                 )
             ),
             knownRooms = setOf("lobby", "field"),
+            pinnedRooms = emptySet(),
             selectedChannel = "lobby",
             readAtByRoom = mapOf("ops" to 5L)
         )
@@ -43,6 +44,7 @@ class RoomDirectoryTest {
             files = emptyList(),
             privateRooms = emptyMap(),
             knownRooms = setOf("ops"),
+            pinnedRooms = emptySet(),
             selectedChannel = "ops",
             readAtByRoom = emptyMap()
         )
@@ -58,11 +60,31 @@ class RoomDirectoryTest {
             files = emptyList(),
             privateRooms = emptyMap(),
             knownRooms = setOf("ops"),
+            pinnedRooms = emptySet(),
             selectedChannel = "lobby",
             readAtByRoom = mapOf("ops" to 1L)
         )
 
         assertEquals(0, rooms.single { it.channel == "ops" }.unreadCount)
+    }
+
+    @Test
+    fun pinnedRoomsStayVisibleAndSortBeforeUnpinnedActivity() {
+        val rooms = RoomDirectory.summarize(
+            messages = listOf(
+                message(id = "ops", channel = "ops", createdAt = 30L),
+                message(id = "alerts", channel = "alerts", createdAt = 40L)
+            ),
+            files = emptyList(),
+            privateRooms = emptyMap(),
+            knownRooms = setOf("ops"),
+            pinnedRooms = setOf("alerts"),
+            selectedChannel = "field",
+            readAtByRoom = emptyMap()
+        )
+
+        assertEquals(listOf("lobby", "field", "alerts", "ops"), rooms.map { it.channel })
+        assertTrue(rooms.single { it.channel == "alerts" }.isPinned)
     }
 
     private fun message(
