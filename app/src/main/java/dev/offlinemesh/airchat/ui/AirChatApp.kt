@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -49,6 +50,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -56,6 +58,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -118,6 +121,7 @@ fun AirChatApp(container: AppContainer) {
     var filePendingSave by remember { mutableStateOf<ReceivedFile?>(null) }
     var peerPendingTrust by remember { mutableStateOf<Peer?>(null) }
     var roomVerificationQr by remember { mutableStateOf<RoomVerificationQr?>(null) }
+    var courierSettingsOpen by remember { mutableStateOf(false) }
     var diagnosticsReport by remember { mutableStateOf<String?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -149,6 +153,7 @@ fun AirChatApp(container: AppContainer) {
         onChannelChanged = viewModel::updateChannel,
         onSelectRoom = viewModel::selectRoom,
         onToggleRoomPinned = viewModel::toggleRoomPinned,
+        onShowCourierSettings = { courierSettingsOpen = true },
         onShowRoomVerification = {
             state.privateRoomCode?.let { code ->
                 roomVerificationQr = RoomVerificationQr(channel = state.channel, code = code)
@@ -212,6 +217,17 @@ fun AirChatApp(container: AppContainer) {
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+        )
+    }
+    if (courierSettingsOpen) {
+        CourierSettingsDialog(
+            queueSize = state.courierQueueSize,
+            enabled = state.courierEnabled,
+            retentionMinutes = state.courierRetentionMinutes,
+            onEnabledChanged = viewModel::setCourierEnabled,
+            onRetentionChanged = viewModel::setCourierRetentionMinutes,
+            onClearQueue = viewModel::clearCourierQueue,
+            onDismiss = { courierSettingsOpen = false }
         )
     }
     roomVerificationQr?.let { room ->
@@ -325,6 +341,7 @@ private fun AirChatScreen(
     onChannelChanged: (String) -> Unit,
     onSelectRoom: (String) -> Unit,
     onToggleRoomPinned: (String) -> Unit,
+    onShowCourierSettings: () -> Unit,
     onShowRoomVerification: () -> Unit,
     onSend: () -> Unit,
     onRefresh: () -> Unit,
@@ -418,6 +435,13 @@ private fun AirChatScreen(
                         }
                     )
                 }
+                AssistChip(
+                    onClick = onShowCourierSettings,
+                    label = { Text(courierChipLabel(state)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                )
                 if (state.privateRoomEnabled && state.directPeer == null) {
                     AssistChip(
                         onClick = onShowRoomVerification,
@@ -449,6 +473,78 @@ private fun AirChatScreen(
             MessageList(messages = state.messages, modifier = Modifier.weight(1f))
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CourierSettingsDialog(
+    queueSize: Int,
+    enabled: Boolean,
+    retentionMinutes: Int,
+    onEnabledChanged: (Boolean) -> Unit,
+    onRetentionChanged: (Int) -> Unit,
+    onClearQueue: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        title = { Text("Courier relay") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Relay packets",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (enabled) "On" else "Off",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Queue: $queueSize packets",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    TextButton(onClick = onClearQueue, enabled = queueSize > 0) {
+                        Text("Clear")
+                    }
+                }
+                Text("Retention", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    COURIER_RETENTION_OPTIONS.forEach { option ->
+                        FilterChip(
+                            selected = option == retentionMinutes,
+                            onClick = { onRetentionChanged(option) },
+                            label = { Text("${option}m") }
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -883,6 +979,11 @@ private fun roomChipLabel(room: RoomSummary): String {
     return "$prefix#${room.channel}$unread$files"
 }
 
+private fun courierChipLabel(state: ChatUiState): String {
+    val mode = if (state.courierEnabled) "${state.courierRetentionMinutes}m" else "off"
+    return "Courier ${state.courierQueueSize} / $mode"
+}
+
 private fun trustLabel(state: PeerTrustState): String {
     return when (state) {
         PeerTrustState.Unknown -> "Untrusted"
@@ -986,6 +1087,8 @@ private fun diagnosticsSnapshot(
         visibleMessageCount = state.messages.size,
         visibleFileCount = state.receivedFiles.size,
         courierQueueSize = state.courierQueueSize,
+        courierEnabled = state.courierEnabled,
+        courierRetentionMinutes = state.courierRetentionMinutes,
         transportStatuses = state.transportStatuses,
         diagnosticEvents = state.diagnosticEvents
     )
@@ -1025,4 +1128,5 @@ private fun shareDiagnostics(context: Context, report: String) {
 
 private const val MAX_PICKED_FILE_BYTES = 10 * 1024 * 1024
 private const val MAX_ROOM_CHIPS = 8
+private val COURIER_RETENTION_OPTIONS = listOf(5, 15, 60)
 private const val SHARED_RECEIVED_DIR = "shared-received"

@@ -48,6 +48,8 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Encrypted DM file transfer |  |  |
 | Received-file persistence after restart |  |  |
 | Courier queue persists after restart |  |  |
+| Courier retention controls |  |  |
+| Courier relay disable/clear |  |  |
 | Background mesh notification |  |  |
 | Diagnostics share sheet |  |  |
 | Diagnostics recent events |  |  |

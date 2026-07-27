@@ -8,6 +8,7 @@ import dev.offlinemesh.airchat.crypto.RoomCrypto
 import dev.offlinemesh.airchat.crypto.RoomKey
 import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.CourierPacket
+import dev.offlinemesh.airchat.model.CourierPolicy
 import dev.offlinemesh.airchat.model.DeliveryState
 import dev.offlinemesh.airchat.model.DiagnosticEvent
 import dev.offlinemesh.airchat.model.OutboxItem
@@ -73,6 +74,7 @@ class MeshRouter(
     private val cryptoBox = CryptoBox()
     private val packetGuard = PacketGuard()
     private val fileAssemblies = mutableMapOf<String, PendingFileAssembly>()
+    private val courierPolicyState = MutableStateFlow(courierStore.loadCourierPolicy().sanitized())
     private val courierPackets = loadInitialCourierPackets()
     private val courierCount = MutableStateFlow(courierPackets.size)
     private val roomKeys = mutableMapOf<String, RoomKey>()
@@ -93,6 +95,7 @@ class MeshRouter(
     val transportStatuses: StateFlow<List<TransportStatus>> = statuses.asStateFlow()
     val diagnostics: StateFlow<List<DiagnosticEvent>> = diagnosticEvents.asStateFlow()
     val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
+    val courierPolicy: StateFlow<CourierPolicy> = courierPolicyState.asStateFlow()
     val privateRoomStatuses: StateFlow<Map<String, PrivateRoomStatus>> = privateRoomStatusMap.asStateFlow()
 
     fun start() {
@@ -147,6 +150,26 @@ class MeshRouter(
                 transport.stop()
                 transport.start()
             }
+        }
+    }
+
+    fun updateCourierPolicy(policy: CourierPolicy) {
+        val sanitized = policy.sanitized()
+        courierPolicyState.value = sanitized
+        courierStore.saveCourierPolicy(sanitized)
+        applyCourierPolicyToQueue()
+        logEvent(
+            "courier",
+            "policy ${if (sanitized.enabled) "enabled" else "disabled"} retention ${sanitized.retentionMinutes}m"
+        )
+    }
+
+    fun clearCourierQueue() {
+        val cleared = courierPackets.size
+        courierPackets.clear()
+        persistCourierQueue()
+        if (cleared > 0) {
+            logEvent("courier", "cleared $cleared packets by user")
         }
     }
 
@@ -909,12 +932,17 @@ class MeshRouter(
 
     private fun queueCourierPacket(packet: MeshPacket) {
         pruneCourierQueue()
+        val policy = courierPolicyState.value
+        if (!policy.enabled) {
+            logEvent("courier", "relay disabled; dropped ${packet.type.name} from ${packet.originId.take(6)}")
+            return
+        }
         if (packet.ttl <= 0 || packet.originId == localPeerId) return
         val now = System.currentTimeMillis()
         courierPackets.remove(packet.id)
         courierPackets[packet.id] = CourierPacket(
             packet = packet,
-            expiresAt = now + COURIER_TTL_MS
+            expiresAt = now + policy.retentionMillis
         )
         while (courierPackets.size > MAX_COURIER_PACKETS) {
             val eldest = courierPackets.keys.firstOrNull() ?: break
@@ -960,21 +988,64 @@ class MeshRouter(
 
     private fun loadInitialCourierPackets(): LinkedHashMap<String, CourierPacket> {
         val now = System.currentTimeMillis()
+        val policy = courierPolicyState.value
         val stored = courierStore.loadCourierPackets()
-        val packets = stored
-            .filter { item ->
-                item.expiresAt > now &&
-                    item.packet.ttl > 0 &&
-                    item.packet.originId != localPeerId &&
-                    localPeerId in item.packet.path
-            }
-            .takeLast(MAX_COURIER_PACKETS)
-        if (packets.size != stored.size) {
+        var changed = false
+        val packets = if (!policy.enabled) {
+            emptyList()
+        } else {
+            val maxExpiresAt = now + policy.retentionMillis
+            stored
+                .filter { item ->
+                    item.expiresAt > now &&
+                        item.packet.ttl > 0 &&
+                        item.packet.originId != localPeerId &&
+                        localPeerId in item.packet.path
+                }
+                .map { item ->
+                    if (item.expiresAt > maxExpiresAt) {
+                        changed = true
+                        item.copy(expiresAt = maxExpiresAt)
+                    } else {
+                        item
+                    }
+                }
+                .takeLast(MAX_COURIER_PACKETS)
+        }
+        if (packets.size != stored.size || changed) {
             courierStore.saveCourierPackets(packets)
         }
         return linkedMapOf<String, CourierPacket>().apply {
             packets.forEach { item -> put(item.packet.id, item) }
         }
+    }
+
+    private fun applyCourierPolicyToQueue() {
+        if (courierPackets.isEmpty()) return
+        val policy = courierPolicyState.value
+        if (!policy.enabled) {
+            val cleared = courierPackets.size
+            courierPackets.clear()
+            persistCourierQueue()
+            logEvent("courier", "cleared $cleared packets after disabling relay")
+            return
+        }
+        val maxExpiresAt = System.currentTimeMillis() + policy.retentionMillis
+        var changed = false
+        val clamped = courierPackets.mapValues { (_, item) ->
+            if (item.expiresAt > maxExpiresAt) {
+                changed = true
+                item.copy(expiresAt = maxExpiresAt)
+            } else {
+                item
+            }
+        }
+        if (changed) {
+            courierPackets.clear()
+            courierPackets.putAll(clamped)
+            persistCourierQueue()
+        }
+        pruneCourierQueue()
     }
 
     private fun queueOutbox(packet: MeshPacket, targetPeerId: String?) {
@@ -1159,7 +1230,6 @@ class MeshRouter(
         const val MAX_DIAGNOSTIC_EVENTS = 80
         const val MAX_DIAGNOSTIC_DETAIL = 120
         const val OUTBOX_TTL_MS = 24L * 60L * 60L * 1_000L
-        const val COURIER_TTL_MS = 15L * 60L * 1_000L
         const val DIRECT_CHANNEL_PREFIX = "dm:"
     }
 }

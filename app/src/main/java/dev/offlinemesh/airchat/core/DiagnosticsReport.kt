@@ -28,6 +28,8 @@ data class DiagnosticsSnapshot(
     val visibleMessageCount: Int,
     val visibleFileCount: Int,
     val courierQueueSize: Int,
+    val courierEnabled: Boolean,
+    val courierRetentionMinutes: Int,
     val transportStatuses: List<TransportStatus>,
     val diagnosticEvents: List<DiagnosticEvent>
 )
@@ -53,6 +55,8 @@ object DiagnosticsReportFormatter {
         appendLine("Visible messages: ${snapshot.visibleMessageCount}")
         appendLine("Visible files: ${snapshot.visibleFileCount}")
         appendLine("Courier queue: ${snapshot.courierQueueSize}")
+        appendLine("Courier relay: ${if (snapshot.courierEnabled) "on" else "off"}")
+        appendLine("Courier retention: ${snapshot.courierRetentionMinutes}m")
         appendLine("Transports:")
         if (snapshot.transportStatuses.isEmpty()) {
             appendLine("- none")

@@ -52,9 +52,11 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 2. Temporarily make phone B unable to reach any other peer except phone A.
 3. Send a verified message from phone A through phone B with relay TTL remaining.
 4. Confirm phone B diagnostics shows a non-zero courier queue if relay broadcast fails.
-5. Restart AirChat on phone B and confirm diagnostics still shows the queued courier packet.
-6. Bring phone C onto the local mesh within 15 minutes.
-7. Confirm phone B flushes the courier queue and phone C receives the relayed packet once.
+5. Tap the `Courier` chip, set retention to 15 minutes, and confirm diagnostics reports courier relay on plus the selected retention.
+6. Restart AirChat on phone B and confirm diagnostics still shows the queued courier packet.
+7. Tap `Clear queue` and confirm diagnostics shows zero queued packets.
+8. Repeat with a fresh relay packet, bring phone C onto the local mesh within the selected retention window, and confirm phone B flushes the courier queue and phone C receives the relayed packet once.
+9. Disable courier relay, repeat a failed relay, and confirm phone B does not retain a courier packet.
 
 ## Trust and DM test
 
@@ -128,7 +130,7 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, transport states, and recent events.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, transport states, and recent events.
 3. Confirm the report includes pinned room count after pinning a room.
 4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.

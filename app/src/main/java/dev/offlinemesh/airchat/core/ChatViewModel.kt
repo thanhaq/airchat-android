@@ -2,6 +2,7 @@ package dev.offlinemesh.airchat.core
 
 import androidx.lifecycle.ViewModel
 import dev.offlinemesh.airchat.model.ChatMessage
+import dev.offlinemesh.airchat.model.CourierPolicy
 import dev.offlinemesh.airchat.model.DiagnosticEvent
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PrivateRoomStatus
@@ -34,6 +35,8 @@ data class ChatUiState(
     val messages: List<ChatMessage>,
     val receivedFiles: List<ReceivedFile>,
     val courierQueueSize: Int,
+    val courierEnabled: Boolean,
+    val courierRetentionMinutes: Int,
     val pinnedRoomCount: Int,
     val transportStatuses: List<TransportStatus>,
     val diagnosticEvents: List<DiagnosticEvent>
@@ -50,6 +53,7 @@ private data class RouterState(
     val messages: List<ChatMessage>,
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
+    val courierPolicy: CourierPolicy,
     val privateRooms: Map<String, PrivateRoomStatus>,
     val statuses: List<TransportStatus>,
     val diagnostics: List<DiagnosticEvent>
@@ -60,7 +64,13 @@ private data class RouterCoreState(
     val messages: List<ChatMessage>,
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
+    val courierPolicy: CourierPolicy,
     val privateRooms: Map<String, PrivateRoomStatus>
+)
+
+private data class CourierState(
+    val queueSize: Int,
+    val policy: CourierPolicy
 )
 
 class ChatViewModel(
@@ -78,18 +88,26 @@ class ChatViewModel(
         ComposerState(text = text, channel = channelName, directPeerId = directId)
     }
 
+    private val courierState = combine(
+        router.courierQueueSize,
+        router.courierPolicy
+    ) { queueSize, policy ->
+        CourierState(queueSize = queueSize, policy = policy)
+    }
+
     private val routerCoreState = combine(
         router.peers,
         router.messages,
         router.receivedFiles,
-        router.courierQueueSize,
+        courierState,
         router.privateRoomStatuses
-    ) { peers, messages, files, courierQueueSize, privateRooms ->
+    ) { peers, messages, files, courierState, privateRooms ->
         RouterCoreState(
             peers = peers,
             messages = messages,
             files = files,
-            courierQueueSize = courierQueueSize,
+            courierQueueSize = courierState.queueSize,
+            courierPolicy = courierState.policy,
             privateRooms = privateRooms
         )
     }
@@ -104,6 +122,7 @@ class ChatViewModel(
             messages = coreState.messages,
             files = coreState.files,
             courierQueueSize = coreState.courierQueueSize,
+            courierPolicy = coreState.courierPolicy,
             privateRooms = coreState.privateRooms,
             statuses = statuses,
             diagnostics = diagnostics
@@ -146,6 +165,8 @@ class ChatViewModel(
             messages = ConversationFilter.apply(routerState.messages, conversation),
             receivedFiles = ConversationFilter.applyFiles(routerState.files, conversation),
             courierQueueSize = routerState.courierQueueSize,
+            courierEnabled = routerState.courierPolicy.enabled,
+            courierRetentionMinutes = routerState.courierPolicy.retentionMinutes,
             pinnedRoomCount = rooms.count { it.isPinned },
             transportStatuses = routerState.statuses,
             diagnosticEvents = routerState.diagnostics
@@ -168,6 +189,8 @@ class ChatViewModel(
             messages = emptyList(),
             receivedFiles = emptyList(),
             courierQueueSize = 0,
+            courierEnabled = CourierPolicy.Default.enabled,
+            courierRetentionMinutes = CourierPolicy.Default.retentionMinutes,
             pinnedRoomCount = 0,
             transportStatuses = emptyList(),
             diagnosticEvents = emptyList()
@@ -357,6 +380,30 @@ class ChatViewModel(
 
     fun retryDiscovery() {
         router.refreshTransports()
+    }
+
+    fun setCourierEnabled(enabled: Boolean) {
+        val current = uiState.value
+        router.updateCourierPolicy(
+            CourierPolicy(
+                enabled = enabled,
+                retentionMinutes = current.courierRetentionMinutes
+            )
+        )
+    }
+
+    fun setCourierRetentionMinutes(minutes: Int) {
+        val current = uiState.value
+        router.updateCourierPolicy(
+            CourierPolicy(
+                enabled = current.courierEnabled,
+                retentionMinutes = minutes
+            )
+        )
+    }
+
+    fun clearCourierQueue() {
+        router.clearCourierQueue()
     }
 
     fun connectWifiPeer(peer: Peer) {

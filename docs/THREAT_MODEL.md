@@ -36,7 +36,8 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Panic wipe clears message history, outbox, peer cache, identity data on disk, and rotates the in-memory identity for the running process.
 - Relay mutation of TTL/path does not affect origin signatures.
 - Message ids are deduplicated to reduce loops and replay noise.
-- Courier relay stores verified transit packets for a short bounded window when no transport currently accepts the relay.
+- Courier relay stores verified transit packets for a short bounded user-selected window when no transport currently accepts the relay.
+- Users can disable courier relay or clear the encrypted courier queue manually.
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
 - QR safety cards and QR room-code cards make out-of-band comparison easier without transmitting passphrases or private keys.
@@ -65,7 +66,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 ## Planned hardening
 
 - Noise-style interactive session handshake for direct messages.
-- Courier per-peer quotas, relay receipts, and user controls.
+- Courier per-peer quotas and relay receipts.
 - Per-peer replay windows.
 - Transport quotas and stronger adaptive rate limiting.
 - Camera scan-to-verify for QR safety cards.

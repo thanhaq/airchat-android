@@ -9,6 +9,7 @@ AirChat stores the minimum local data needed for mesh messaging:
 - A per-install identity key and peer id.
 - Local message history and outbox entries.
 - Short-lived courier relay packets for verified mesh traffic awaiting the next peer contact.
+- Courier relay preference and retention setting.
 - Trusted peer public keys.
 - Known rooms and pinned room preferences.
 - Received-file inbox metadata and encrypted file blobs.
@@ -21,7 +22,7 @@ Message history, outbox entries, courier relay packets, trust records, room pref
 
 AirChat communicates with nearby peers through local Wi-Fi LAN discovery and Wi-Fi Direct. It does not send messages to an AirChat cloud service.
 
-Public room messages and public room file metadata are visible to nearby peers participating in the same local mesh. Direct messages and direct file packets are encrypted for the recipient public key, but nearby devices can still observe radio/network metadata such as timing, packet sizes, and local peer identifiers.
+Public room messages and public room file metadata are visible to nearby peers participating in the same local mesh. Direct messages and direct file packets are encrypted for the recipient public key, but nearby devices can still observe radio/network metadata such as timing, packet sizes, and local peer identifiers. Courier relay can be disabled or cleared from the app when users do not want verified transit packets retained for later peer contact.
 
 Diagnostics reports are created only when the user opens and shares them. The recent event log is intended for debugging and includes metadata such as transport state changes, packet categories, queue events, and guard rejections. It does not intentionally include message bodies, private-room passphrases, or file names.
 

@@ -30,8 +30,9 @@ Use this script for a short README GIF, release video, or social post.
 17. Type `/msg <peer> encrypted hello` to send a private message.
 18. Attach a small text file in DM mode.
 19. Show the receiver's file strip with save and share actions.
-20. Open diagnostics and show transport/key status plus recent events.
-21. Enable background mesh mode and show the persistent notification.
+20. Tap the `Courier` chip and show relay retention plus clear queue controls.
+21. Open diagnostics and show transport/key/courier status plus recent events.
+22. Enable background mesh mode and show the persistent notification.
 
 ## Voiceover beats
 
@@ -49,6 +50,7 @@ Use this script for a short README GIF, release video, or social post.
 - "Diagnostics make device testing and issue reports easier."
 - "Recent events show what the mesh was doing without exposing chat text."
 - "The outbox keeps messages ready for the next peer contact."
+- "Courier controls let testers choose how long verified relay packets can wait."
 
 ## End frame
 

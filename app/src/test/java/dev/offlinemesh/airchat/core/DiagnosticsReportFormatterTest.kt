@@ -32,6 +32,8 @@ class DiagnosticsReportFormatterTest {
                 visibleMessageCount = 7,
                 visibleFileCount = 1,
                 courierQueueSize = 3,
+                courierEnabled = true,
+                courierRetentionMinutes = 15,
                 transportStatuses = listOf(
                     TransportStatus("LAN", TransportState.Ready, "Advertising on local Wi-Fi")
                 ),
@@ -50,6 +52,8 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("Rooms unread: 1"))
         assertTrue(report.contains("Rooms pinned: 2"))
         assertTrue(report.contains("Courier queue: 3"))
+        assertTrue(report.contains("Courier relay: on"))
+        assertTrue(report.contains("Courier retention: 15m"))
         assertTrue(report.contains("- LAN: Ready (Advertising on local Wi-Fi)"))
         assertTrue(report.contains("Recent events:"))
         assertTrue(report.contains("router: started with 2 transports"))

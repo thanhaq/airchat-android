@@ -4,6 +4,7 @@ import dev.offlinemesh.airchat.crypto.CryptoBox
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.crypto.MeshIdentity
 import dev.offlinemesh.airchat.crypto.RoomCrypto
+import dev.offlinemesh.airchat.model.CourierPolicy
 import dev.offlinemesh.airchat.model.DeliveryState
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerConnectionState
@@ -350,6 +351,76 @@ class MeshRouterTest {
         assertEquals(DeliveryState.Unverified, router.messages.value.single().state)
         assertEquals(0, router.courierQueueSize.value)
         assertTrue(transport.broadcastedPackets.isEmpty())
+    }
+
+    @Test
+    fun courierPolicyCanDisableRelayStorage() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val store = InMemoryCourierStore()
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            courierStore = store,
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        router.updateCourierPolicy(CourierPolicy(enabled = false, retentionMinutes = 15))
+        advanceUntilIdle()
+
+        transport.emitPacket(
+            signedPacket(
+                identity = alice,
+                id = "disabled-courier",
+                type = PacketType.Chat,
+                channel = "lobby",
+                payload = "relay disabled"
+            ),
+            peerFor(alice)
+        )
+        advanceUntilIdle()
+
+        assertEquals(0, router.courierQueueSize.value)
+        assertTrue(store.loadCourierPackets().isEmpty())
+        assertTrue(router.diagnostics.value.any { it.category == "courier" && it.detail.contains("relay disabled") })
+    }
+
+    @Test
+    fun courierPolicyControlsRetentionWindow() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val store = InMemoryCourierStore()
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            courierStore = store,
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        router.updateCourierPolicy(CourierPolicy(enabled = true, retentionMinutes = 5))
+        val before = System.currentTimeMillis()
+        advanceUntilIdle()
+
+        transport.emitPacket(
+            signedPacket(
+                identity = alice,
+                id = "retention-courier",
+                type = PacketType.Chat,
+                channel = "lobby",
+                payload = "short retention"
+            ),
+            peerFor(alice)
+        )
+        advanceUntilIdle()
+        val after = System.currentTimeMillis()
+
+        val packet = store.loadCourierPackets().single()
+        assertTrue(packet.expiresAt >= before + 5L * 60L * 1_000L)
+        assertTrue(packet.expiresAt <= after + 5L * 60L * 1_000L)
     }
 
     @Test

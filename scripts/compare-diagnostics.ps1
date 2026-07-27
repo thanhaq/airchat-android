@@ -242,6 +242,8 @@ $summaryFields = @(
     "Visible messages"
     "Visible files"
     "Courier queue"
+    "Courier relay"
+    "Courier retention"
 )
 
 $out = New-Object System.Collections.Generic.List[string]

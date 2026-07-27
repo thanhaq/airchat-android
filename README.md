@@ -26,7 +26,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - QR safety-number and private-room code cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
-- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay between transports.
+- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - Multi-room switcher with unread counts, file counts, private-room markers, and persistent pinned favorites.
 - In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, a privacy-preserving recent event log, and share action for field testing.
@@ -100,6 +100,13 @@ For rooms:
 1. Type `/join room` or edit the channel field to create or switch rooms.
 2. Tap the star beside a room chip to pin or unpin it.
 3. Pinned rooms remain visible across app restarts.
+
+For courier relay:
+
+1. Tap the `Courier` status chip.
+2. Toggle store-and-forward relay on or off.
+3. Pick a 5, 15, or 60 minute retention window.
+4. Clear the encrypted courier queue manually before sensitive handoff tests.
 
 Composer commands:
 
@@ -200,7 +207,7 @@ Next security milestones:
 
 - Camera scan-to-verify for QR safety cards.
 - Room reorder controls.
-- Courier per-peer quotas, relay receipts, and user-visible retention controls.
+- Courier per-peer quotas, relay receipts, and richer expiry tuning.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.
 - Battery-aware tuning for background foreground service.

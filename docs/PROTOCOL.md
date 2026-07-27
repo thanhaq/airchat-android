@@ -152,7 +152,8 @@ Public-channel files use `FileManifest` and `FileChunk` packets. Private-room fi
 Courier mode is opportunistic store-and-forward for packets that were already accepted by `PacketGuard` and verified against the origin signature.
 
 - Queue capacity is 256 packets.
-- Queue lifetime is 15 minutes.
+- Queue lifetime is user-configurable at 5, 15, or 60 minutes.
+- Users can disable courier relay or clear the queue manually from the app UI.
 - Entries are encrypted at rest with Android Keystore AES-GCM and excluded from Android backup/device transfer.
 - The queue is flushed when transports report peer changes or when the router starts.
 - Courier entries keep the already-decremented TTL and appended relay path, so retries do not create extra hops.
