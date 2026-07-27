@@ -52,8 +52,9 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 2. Temporarily make phone B unable to reach any other peer except phone A.
 3. Send a verified message from phone A through phone B with relay TTL remaining.
 4. Confirm phone B diagnostics shows a non-zero courier queue if relay broadcast fails.
-5. Bring phone C onto the local mesh within 15 minutes.
-6. Confirm phone B flushes the courier queue and phone C receives the relayed packet once.
+5. Restart AirChat on phone B and confirm diagnostics still shows the queued courier packet.
+6. Bring phone C onto the local mesh within 15 minutes.
+7. Confirm phone B flushes the courier queue and phone C receives the relayed packet once.
 
 ## Trust and DM test
 

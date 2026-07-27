@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.os.Build
 import dev.offlinemesh.airchat.crypto.IdentityStore
+import dev.offlinemesh.airchat.store.PreferencesCourierStore
 import dev.offlinemesh.airchat.store.PreferencesPeerTrustStore
 import dev.offlinemesh.airchat.store.PreferencesChatStore
 import dev.offlinemesh.airchat.store.PreferencesReceivedFileStore
@@ -29,6 +30,7 @@ class AppContainer(context: Context) {
     val chatStore = PreferencesChatStore(appContext)
     val peerTrustStore = PreferencesPeerTrustStore(appContext)
     val receivedFileStore = PreferencesReceivedFileStore(appContext)
+    val courierStore = PreferencesCourierStore(appContext)
     val lanTransport = LanTransport(appContext, identityStore, scope)
     val wifiDirectTransport = WifiDirectTransport(appContext, identityStore, scope)
     val router = MeshRouter(
@@ -36,6 +38,7 @@ class AppContainer(context: Context) {
         chatStore = chatStore,
         peerTrustStore = peerTrustStore,
         receivedFileStore = receivedFileStore,
+        courierStore = courierStore,
         transports = listOf(lanTransport, wifiDirectTransport),
         scope = scope
     )

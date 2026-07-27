@@ -24,7 +24,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
-- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded in-memory courier relay between transports.
+- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay between transports.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - In-app diagnostics report with identity-key backing, transport states, peer counts, and share action for field testing.
 - Compose UI with peer list, channel composer, DM mode, status chips, and verified/unverified message state.
@@ -160,7 +160,7 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Security model
 
-AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Local message history, outbox entries, trust records, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. The public channel is intentionally visible to local peers, similar to an IRC room on a local mesh.
+AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. The public channel is intentionally visible to local peers, similar to an IRC room on a local mesh.
 
 Next security milestones:
 
@@ -171,7 +171,7 @@ Next security milestones:
 
 - QR safety-number verification.
 - Multi-channel switching UI with pinned favorite rooms.
-- Persistent courier mode with per-peer quotas and relay receipts.
+- Courier per-peer quotas, relay receipts, and user-visible retention controls.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.
 - Battery-aware tuning for background foreground service.

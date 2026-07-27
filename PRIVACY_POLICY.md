@@ -8,11 +8,12 @@ AirChat stores the minimum local data needed for mesh messaging:
 
 - A per-install identity key and peer id.
 - Local message history and outbox entries.
+- Short-lived courier relay packets for verified mesh traffic awaiting the next peer contact.
 - Trusted peer public keys.
 - Received-file inbox metadata and encrypted file blobs.
 - App preferences needed for foreground background mesh mode.
 
-Message history, outbox entries, trust records, and received-file inbox entries are encrypted locally with Android Keystore AES-GCM keys. On Android 12+ new identity keys prefer Android Keystore and may be hardware-backed depending on the device. On Android 8-11, or when signing plus ECDH are not both available through Keystore, AirChat falls back to app-private software keys excluded from Android backup.
+Message history, outbox entries, courier relay packets, trust records, and received-file inbox entries are encrypted locally with Android Keystore AES-GCM keys. On Android 12+ new identity keys prefer Android Keystore and may be hardware-backed depending on the device. On Android 8-11, or when signing plus ECDH are not both available through Keystore, AirChat falls back to app-private software keys excluded from Android backup.
 
 ## Network Behavior
 

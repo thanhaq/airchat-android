@@ -5,6 +5,7 @@ import dev.offlinemesh.airchat.crypto.EncryptedPayload
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.crypto.MeshIdentity
 import dev.offlinemesh.airchat.model.ChatMessage
+import dev.offlinemesh.airchat.model.CourierPacket
 import dev.offlinemesh.airchat.model.DeliveryState
 import dev.offlinemesh.airchat.model.OutboxItem
 import dev.offlinemesh.airchat.model.Peer
@@ -27,7 +28,9 @@ import dev.offlinemesh.airchat.protocol.PacketGuard
 import dev.offlinemesh.airchat.protocol.PacketGuardDecision
 import dev.offlinemesh.airchat.protocol.PacketType
 import dev.offlinemesh.airchat.store.ChatStore
+import dev.offlinemesh.airchat.store.CourierStore
 import dev.offlinemesh.airchat.store.InMemoryChatStore
+import dev.offlinemesh.airchat.store.InMemoryCourierStore
 import dev.offlinemesh.airchat.store.InMemoryPeerTrustStore
 import dev.offlinemesh.airchat.store.InMemoryReceivedFileStore
 import dev.offlinemesh.airchat.store.PeerTrustStore
@@ -47,6 +50,7 @@ class MeshRouter(
     private val chatStore: ChatStore = InMemoryChatStore(),
     private val peerTrustStore: PeerTrustStore = InMemoryPeerTrustStore(),
     private val receivedFileStore: ReceivedFileStore = InMemoryReceivedFileStore(),
+    private val courierStore: CourierStore = InMemoryCourierStore(),
     private val transports: List<MeshTransport>,
     private val scope: CoroutineScope
 ) {
@@ -58,11 +62,11 @@ class MeshRouter(
     private val receivedFileLog = MutableStateFlow(receivedFileStore.loadReceivedFiles().takeLast(MAX_RECEIVED_FILES))
     private val trustedPeers = MutableStateFlow(peerTrustStore.loadTrustedPeers())
     private val statuses = MutableStateFlow<List<TransportStatus>>(emptyList())
-    private val courierCount = MutableStateFlow(0)
     private val cryptoBox = CryptoBox()
     private val packetGuard = PacketGuard()
     private val fileAssemblies = mutableMapOf<String, PendingFileAssembly>()
-    private val courierPackets = linkedMapOf<String, CourierPacket>()
+    private val courierPackets = loadInitialCourierPackets()
+    private val courierCount = MutableStateFlow(courierPackets.size)
     private val routerJobs = mutableListOf<Job>()
     private var started = false
 
@@ -139,6 +143,7 @@ class MeshRouter(
         fileAssemblies.clear()
         courierPackets.clear()
         courierCount.value = 0
+        courierStore.clear()
         chatStore.clear()
         receivedFileStore.clear()
         trustedPeers.value = emptyMap()
@@ -691,7 +696,7 @@ class MeshRouter(
             val eldest = courierPackets.keys.firstOrNull() ?: break
             courierPackets.remove(eldest)
         }
-        courierCount.value = courierPackets.size
+        persistCourierQueue()
     }
 
     private suspend fun flushCourierQueue() {
@@ -705,15 +710,41 @@ class MeshRouter(
         }
         courierPackets.clear()
         courierPackets.putAll(retained)
-        courierCount.value = courierPackets.size
+        persistCourierQueue()
     }
 
     private fun pruneCourierQueue() {
         if (courierPackets.isEmpty()) return
         val now = System.currentTimeMillis()
         val expired = courierPackets.filterValues { it.expiresAt <= now }.keys
+        if (expired.isEmpty()) return
         expired.forEach(courierPackets::remove)
-        courierCount.value = courierPackets.size
+        persistCourierQueue()
+    }
+
+    private fun persistCourierQueue() {
+        val packets = courierPackets.values.toList()
+        courierCount.value = packets.size
+        courierStore.saveCourierPackets(packets)
+    }
+
+    private fun loadInitialCourierPackets(): LinkedHashMap<String, CourierPacket> {
+        val now = System.currentTimeMillis()
+        val stored = courierStore.loadCourierPackets()
+        val packets = stored
+            .filter { item ->
+                item.expiresAt > now &&
+                    item.packet.ttl > 0 &&
+                    item.packet.originId != localPeerId &&
+                    localPeerId in item.packet.path
+            }
+            .takeLast(MAX_COURIER_PACKETS)
+        if (packets.size != stored.size) {
+            courierStore.saveCourierPackets(packets)
+        }
+        return linkedMapOf<String, CourierPacket>().apply {
+            packets.forEach { item -> put(item.packet.id, item) }
+        }
     }
 
     private fun queueOutbox(packet: MeshPacket, targetPeerId: String?) {
@@ -846,11 +877,6 @@ class MeshRouter(
         var manifest: FileManifest? = null,
         val chunks: MutableMap<Int, FileChunk> = mutableMapOf(),
         var verified: Boolean = true
-    )
-
-    private data class CourierPacket(
-        val packet: MeshPacket,
-        val expiresAt: Long
     )
 
     private companion object {

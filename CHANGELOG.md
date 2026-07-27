@@ -7,7 +7,7 @@
 - Added Wi-Fi Direct discovery, group connection hooks, and TCP socket exchange.
 - Added signed mesh packet protocol with TTL relay and deduplication.
 - Added signed ACK delivery receipts for public and direct text messages.
-- Added bounded in-memory courier queue for opportunistic store-and-forward relay of verified mesh packets.
+- Added bounded encrypted courier queue for opportunistic store-and-forward relay of verified mesh packets across app restarts.
 - Added encrypted direct-message payloads using ephemeral ECDH and AES-GCM.
 - Added Android Keystore-backed identity generation with signing/ECDH self-test and app-private software fallback.
 - Added encrypted local message/outbox persistence backed by Android Keystore AES-GCM.
@@ -21,6 +21,7 @@
 - Added save-to-device UI for received files.
 - Added Android share sheet support for received files through a non-exported FileProvider.
 - Added Android backup/device-transfer exclusions for encrypted received-file metadata and blobs.
+- Added Android backup/device-transfer exclusions for encrypted courier relay packets.
 - Added IRC-style slash commands: `/join`, `/room`, `/msg`, `/dm`, `/me`, `/who`, and `/help`.
 - Added in-app diagnostics report with courier queue size, share action, and field-test/GitHub issue details.
 - Added foreground background mesh service with notification controls for longer-lived local discovery and relay.

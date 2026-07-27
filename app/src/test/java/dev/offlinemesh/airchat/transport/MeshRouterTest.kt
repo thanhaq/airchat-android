@@ -20,6 +20,7 @@ import dev.offlinemesh.airchat.protocol.MeshPacket
 import dev.offlinemesh.airchat.protocol.MeshPacketCodec
 import dev.offlinemesh.airchat.protocol.PacketType
 import dev.offlinemesh.airchat.store.InMemoryChatStore
+import dev.offlinemesh.airchat.store.InMemoryCourierStore
 import dev.offlinemesh.airchat.store.InMemoryPeerTrustStore
 import dev.offlinemesh.airchat.store.InMemoryReceivedFileStore
 import dev.offlinemesh.airchat.testutil.FakeTransport
@@ -157,6 +158,60 @@ class MeshRouterTest {
         assertEquals("courier-1", relayed.id)
         assertEquals(6, relayed.ttl)
         assertTrue(bob.peerId in relayed.path)
+    }
+
+    @Test
+    fun loadsPersistedCourierPacketsAndFlushesOnPeerContact() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val charlie = TestIdentity("charlie")
+        val courierStore = InMemoryCourierStore()
+        val firstTransport = FakeTransport().apply { broadcastSucceeds = false }
+        val firstRouter = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            courierStore = courierStore,
+            transports = listOf(firstTransport),
+            scope = routerScope()
+        )
+        firstRouter.start()
+        advanceUntilIdle()
+
+        firstTransport.emitPacket(
+            signedPacket(
+                identity = alice,
+                id = "persisted-courier",
+                type = PacketType.Chat,
+                channel = "lobby",
+                payload = "carry across restart"
+            ),
+            peerFor(alice)
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, courierStore.loadCourierPackets().size)
+
+        val secondTransport = FakeTransport().apply { broadcastSucceeds = false }
+        val secondRouter = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            courierStore = courierStore,
+            transports = listOf(secondTransport),
+            scope = routerScope()
+        )
+        secondRouter.start()
+        advanceUntilIdle()
+
+        assertEquals(1, secondRouter.courierQueueSize.value)
+
+        secondTransport.broadcastedPackets.clear()
+        secondTransport.broadcastSucceeds = true
+        secondTransport.publishPeers(listOf(peerFor(charlie)))
+        advanceUntilIdle()
+
+        assertEquals(0, secondRouter.courierQueueSize.value)
+        assertTrue(courierStore.loadCourierPackets().isEmpty())
+        assertEquals("persisted-courier", secondTransport.broadcastedPackets.single { it.type == PacketType.Chat }.id)
     }
 
     @Test
