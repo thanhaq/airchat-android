@@ -25,6 +25,8 @@ AirChat communicates with nearby peers through local Wi-Fi LAN discovery and Wi-
 
 Public room messages and public room file metadata are visible to nearby peers participating in the same local mesh. Direct messages and direct file packets are encrypted for the recipient public key, but nearby devices can still observe radio/network metadata such as timing, packet sizes, and local peer identifiers. Courier relay can be disabled or cleared from the app when users do not want verified transit packets retained for later peer contact.
 
+Private-room invite cards include the room name and room-code fingerprint so people can join the same room and compare keys. They do not include the passphrase.
+
 Peer blocking is local to the device. AirChat can drop content and stop relaying packets from blocked peer ids, but it cannot hide that nearby radios exist or force another device to stop broadcasting.
 
 Diagnostics reports are created only when the user opens and shares them. The recent event log is intended for debugging and includes metadata such as transport state changes, packet categories, queue events, and guard rejections. It does not intentionally include message bodies, private-room passphrases, or file names.

@@ -24,7 +24,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
 - Persistent peer blocklist with UI actions and `/block` / `/unblock` commands.
-- QR safety-number and private-room code cards for out-of-band verification without exposing passphrases.
+- QR safety-number cards and private-room invite cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
 - Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls.
@@ -134,7 +134,7 @@ For peer verification:
 
 To block a peer, tap the block icon in its peer row or type `/block peer`. Blocked peers stay visible when discovered so they can be unblocked, but AirChat drops their packets before display, ACK, relay, or courier storage.
 
-For private-room verification, tap the `Private` room chip to show a QR room-code card. The QR contains only a room-code fingerprint, not the passphrase.
+For private-room invites, tap the `Private` room chip to show a QR invite card. The QR contains the room name and room-code fingerprint, not the passphrase. Use `Share` to send the same invite payload as text.
 
 For files:
 
@@ -204,7 +204,7 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Security model
 
-AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Private rooms derive an in-memory AES-GCM key from the room passphrase and channel name, then encrypt text, file manifests, and file chunks per packet with fresh nonces. Each room key gets a short verification code so participants can compare that they entered the same passphrase without saying the passphrase itself. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. Public channels are intentionally visible to local peers, similar to IRC rooms on a local mesh.
+AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Private rooms derive an in-memory AES-GCM key from the room passphrase and channel name, then encrypt text, file manifests, and file chunks per packet with fresh nonces. Each room key gets a short verification code so participants can compare that they entered the same passphrase without saying the passphrase itself; private-room invite cards carry the room name and code only, never the passphrase. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. Public channels are intentionally visible to local peers, similar to IRC rooms on a local mesh.
 
 Next security milestones:
 

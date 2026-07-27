@@ -40,7 +40,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Users can disable courier relay or clear the encrypted courier queue manually.
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
-- QR safety cards and QR room-code cards make out-of-band comparison easier without transmitting passphrases or private keys.
+- QR safety cards and QR private-room invite cards make out-of-band comparison easier without transmitting passphrases or private keys.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
 - Blocked peer ids are encrypted at rest and excluded from Android backup; blocked packets are dropped before display, ACK, relay, or courier storage.
 - Background mesh alerts avoid message bodies and file names, showing only sender and conversation labels.
@@ -54,7 +54,8 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Private-room passphrases need enough entropy to resist offline guessing from captured packets.
 - Passphrase-strength labels are advisory and cannot prove that a phrase is safe against targeted guessing.
 - Room verification codes are not secrets; they are short key fingerprints for human comparison.
-- QR verification cards are not secrets; they encode fingerprints for comparison, not identity proof by themselves.
+- QR verification and invite cards are not secrets; they encode fingerprints and room metadata for comparison, not identity proof by themselves.
+- Private-room invite cards include the room name and room-code fingerprint, but not the room passphrase.
 - Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
 - Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
 - System notifications can reveal that AirChat traffic arrived, plus sender names and room labels, to anyone who can see device notifications.

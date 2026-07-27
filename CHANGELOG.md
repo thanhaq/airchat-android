@@ -8,6 +8,7 @@
 - Added signed mesh packet protocol with TTL relay and deduplication.
 - Added signed ACK delivery receipts for public and direct text messages.
 - Added passphrase-locked private rooms with encrypted group text, encrypted room file transfer, locked-packet buffering, in-memory room keys, verification codes, passphrase-strength labels, and key rotation.
+- Added private-room invite QR/text cards that carry room metadata without passphrases.
 - Added bounded encrypted courier queue for opportunistic store-and-forward relay of verified mesh packets across app restarts, with user-visible retention, disable, and clear controls.
 - Added encrypted direct-message payloads using ephemeral ECDH and AES-GCM.
 - Added Android Keystore-backed identity generation with signing/ECDH self-test and app-private software fallback.

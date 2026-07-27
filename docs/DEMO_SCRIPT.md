@@ -20,7 +20,7 @@ Use this script for a short README GIF, release video, or social post.
 7. Show the room switcher with `lobby` and `field_ops`.
 8. Send a room message and show phone B receiving a locked placeholder.
 9. Type `/lock demo-passphrase` on phone B and show the same room code plus unlocked message.
-10. Tap the private-room chip and show the QR room-code card.
+10. Tap the private-room chip and show the QR invite card.
 11. Type `/code` on one phone, then `/rotate demo-passphrase-2` and show the code change.
 12. Pin the `field_ops` room, restart AirChat, and show the pinned room still visible.
 13. Switch rooms and show an unread count clearing when the room chip is opened.
@@ -42,7 +42,7 @@ Use this script for a short README GIF, release video, or social post.
 - "Wi-Fi Direct is included for phone-to-phone links."
 - "Packets are signed; private rooms, direct messages, and direct files are encrypted."
 - "A phone that joins late can unlock buffered private-room packets after entering the passphrase."
-- "QR room-code cards let people confirm they typed the same passphrase."
+- "Private-room invite cards carry room metadata and a verification code, but never the passphrase."
 - "QR safety cards make peer-key checks easier without trusting a server."
 - "Room chips make multiple offline channels easy to follow."
 - "Pinned rooms survive restarts, which helps teams keep their working channels ready."

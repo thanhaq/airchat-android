@@ -234,8 +234,8 @@ fun AirChatApp(container: AppContainer) {
         )
     }
     roomVerificationQr?.let { room ->
-        val payload = remember(room) { VerificationPayload.room(room.channel, room.code) }
-        val matrix = remember(payload) { QrCodeEncoder.encodeText(payload) }
+        val invitePayload = remember(room) { VerificationPayload.roomInvite(room.channel, room.code) }
+        val matrix = remember(invitePayload) { QrCodeEncoder.encodeText(invitePayload) }
         AlertDialog(
             onDismissRequest = { roomVerificationQr = null },
             confirmButton = {
@@ -243,10 +243,15 @@ fun AirChatApp(container: AppContainer) {
                     Text("Close")
                 }
             },
-            title = { Text("Room verification") },
+            dismissButton = {
+                TextButton(onClick = { shareRoomInvite(context, room.channel, room.code) }) {
+                    Text("Share")
+                }
+            },
+            title = { Text("Room invite") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Compare this code with people in #${room.channel} before trusting the room passphrase.")
+                    Text("Invite people to #${room.channel}, then compare the room code before trusting the passphrase.")
                     VerificationQrCanvas(
                         matrix = matrix,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -257,7 +262,7 @@ fun AirChatApp(container: AppContainer) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "The QR contains only a room-code fingerprint, not the passphrase.",
+                        text = "The QR contains the room name and code only, not the passphrase.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1146,6 +1151,23 @@ private fun shareDiagnostics(context: Context, report: String) {
     }
     context.startActivity(
         Intent.createChooser(shareIntent, "Share diagnostics")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
+}
+
+private fun shareRoomInvite(context: Context, channel: String, code: String) {
+    val invitePayload = VerificationPayload.roomInvite(channel, code)
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "AirChat room invite #$channel")
+        putExtra(
+            Intent.EXTRA_TEXT,
+            "AirChat private-room invite\nRoom: #$channel\nCode: $code\nPayload: $invitePayload\nPassphrase is not included."
+        )
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(
+        Intent.createChooser(shareIntent, "Share room invite")
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
 }

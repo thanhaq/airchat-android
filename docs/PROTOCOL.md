@@ -103,6 +103,14 @@ The decrypted room payload is a `RoomEnvelope`:
 
 The room verification code shown by the app is not transmitted in packets. It is a short SHA-256 fingerprint of the derived room key and channel name, intended only for out-of-band comparison between participants.
 
+Private-room invite cards use a QR/text payload that carries room metadata without carrying the passphrase:
+
+```text
+AIRCHAT-ROOM-INVITE:1:{channel}:{channelDigest}:{verificationCode}
+```
+
+The channel name is included so another device can join the same room. `channelDigest` is a 12-hex-character SHA-256 prefix over the sanitized channel name, and `verificationCode` is the room-code fingerprint users compare after entering the passphrase out of band.
+
 Receivers that have not entered the room key keep a bounded in-memory buffer of locked room packets. When the user later enters the matching passphrase, AirChat attempts to unlock buffered packets for that channel and replaces locked placeholders with verified plaintext.
 
 ## Delivery receipts
