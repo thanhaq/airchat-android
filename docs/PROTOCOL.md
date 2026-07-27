@@ -110,6 +110,19 @@ Public-channel files use `FileManifest` and `FileChunk` packets. Direct files us
 - Relays append their local peer id to `path`.
 - A device never displays packets it originated.
 - A device never sends an ACK for an ACK.
+- Only signed and verified non-`Hello` packets are relayed.
+- If no transport accepts a relay packet, the router keeps it in a bounded in-memory courier queue for later peer contact.
+
+## Courier queue
+
+Courier mode is opportunistic store-and-forward for packets that were already accepted by `PacketGuard` and verified against the origin signature.
+
+- Queue capacity is 256 packets.
+- Queue lifetime is 15 minutes.
+- Entries are memory-only in this version.
+- The queue is flushed when transports report peer changes or when the router starts.
+- Courier entries keep the already-decremented TTL and appended relay path, so retries do not create extra hops.
+- Public packets remain visible to local peers; direct packets remain encrypted but still expose metadata such as timing and packet size.
 
 ## Guard rails
 

@@ -769,6 +769,7 @@ private fun diagnosticsSnapshot(
         peerCount = state.peers.size,
         visibleMessageCount = state.messages.size,
         visibleFileCount = state.receivedFiles.size,
+        courierQueueSize = state.courierQueueSize,
         transportStatuses = state.transportStatuses
     )
 }

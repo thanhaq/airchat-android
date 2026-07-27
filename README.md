@@ -24,11 +24,11 @@ The project is intentionally structured like a serious open-source repo: small p
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
-- Message deduplication, TTL-limited relay, and signed delivery receipts between transports.
+- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded in-memory courier relay between transports.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - In-app diagnostics report with identity-key backing, transport states, peer counts, and share action for field testing.
 - Compose UI with peer list, channel composer, DM mode, status chips, and verified/unverified message state.
-- Unit tests for packet serialization, direct-message crypto, conversation filtering, packet guard, file chunking, ACK receipts, and dedup behavior.
+- Unit tests for packet serialization, direct-message crypto, conversation filtering, packet guard, file chunking, ACK receipts, courier relay, and dedup behavior.
 
 ## Why Wi-Fi instead of Bluetooth
 
@@ -46,6 +46,7 @@ flowchart LR
     VM --> Router["MeshRouter"]
     Router --> Protocol["Signed MeshPacket protocol"]
     Router --> Dedup["Dedup + TTL relay"]
+    Router --> Courier["Courier queue / store-and-forward relay"]
     Router --> LAN["LanTransport / NSD + TCP"]
     Router --> P2P["WifiDirectTransport / P2P + TCP"]
     Protocol --> Identity["P-256 identity keys"]
@@ -170,7 +171,7 @@ Next security milestones:
 
 - QR safety-number verification.
 - Multi-channel switching UI with pinned favorite rooms.
-- Courier mode for opportunistic store-and-forward delivery across other peers.
+- Persistent courier mode with per-peer quotas and relay receipts.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.
 - Battery-aware tuning for background foreground service.

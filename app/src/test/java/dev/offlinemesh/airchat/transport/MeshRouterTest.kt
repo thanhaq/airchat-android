@@ -121,6 +121,79 @@ class MeshRouterTest {
     }
 
     @Test
+    fun queuesVerifiedRelayPacketForCourierWhenBroadcastFails() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val charlie = TestIdentity("charlie")
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        val signed = signedPacket(
+            identity = alice,
+            id = "courier-1",
+            type = PacketType.Chat,
+            channel = "lobby",
+            payload = "carry this"
+        )
+
+        transport.emitPacket(signed, peerFor(alice))
+        advanceUntilIdle()
+
+        assertEquals(1, router.courierQueueSize.value)
+
+        transport.broadcastedPackets.clear()
+        transport.broadcastSucceeds = true
+        transport.publishPeers(listOf(peerFor(charlie)))
+        advanceUntilIdle()
+
+        assertEquals(0, router.courierQueueSize.value)
+        val relayed = transport.broadcastedPackets.single { it.type == PacketType.Chat }
+        assertEquals("courier-1", relayed.id)
+        assertEquals(6, relayed.ttl)
+        assertTrue(bob.peerId in relayed.path)
+    }
+
+    @Test
+    fun doesNotCourierUnverifiedRelayPackets() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        val unsigned = MeshPacket(
+            id = "unverified-courier",
+            type = PacketType.Chat,
+            originId = alice.peerId,
+            originName = alice.displayName,
+            originPublicKey = alice.publicKeyEncoded,
+            createdAt = System.currentTimeMillis(),
+            ttl = 7,
+            channel = "lobby",
+            payload = "do not relay"
+        )
+
+        transport.emitPacket(unsigned.copy(signature = "invalid"), peerFor(alice))
+        advanceUntilIdle()
+
+        assertEquals(1, router.messages.value.size)
+        assertEquals(DeliveryState.Unverified, router.messages.value.single().state)
+        assertEquals(0, router.courierQueueSize.value)
+        assertTrue(transport.broadcastedPackets.isEmpty())
+    }
+
+    @Test
     fun receivesAckAndMarksLocalMessageReceived() = runTest {
         val alice = TestIdentity("alice")
         val bob = TestIdentity("bob")
@@ -633,6 +706,7 @@ class MeshRouterTest {
 
         assertTrue(router.messages.value.isEmpty())
         assertTrue(router.peers.value.isEmpty())
+        assertEquals(0, router.courierQueueSize.value)
         assertTrue(store.loadOutbox().isEmpty())
         assertTrue(store.loadMessages().isEmpty())
         assertTrue(receivedFileStore.loadReceivedFiles().isEmpty())

@@ -24,6 +24,7 @@ class DiagnosticsReportFormatterTest {
                 peerCount = 2,
                 visibleMessageCount = 7,
                 visibleFileCount = 1,
+                courierQueueSize = 3,
                 transportStatuses = listOf(
                     TransportStatus("LAN", TransportState.Ready, "Advertising on local Wi-Fi")
                 )
@@ -33,6 +34,7 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("AirChat diagnostics"))
         assertTrue(report.contains("Identity key: Android Keystore hardware-backed"))
         assertTrue(report.contains("Conversation: #lobby"))
+        assertTrue(report.contains("Courier queue: 3"))
         assertTrue(report.contains("- LAN: Ready (Advertising on local Wi-Fi)"))
     }
 }

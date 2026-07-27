@@ -58,9 +58,11 @@ class MeshRouter(
     private val receivedFileLog = MutableStateFlow(receivedFileStore.loadReceivedFiles().takeLast(MAX_RECEIVED_FILES))
     private val trustedPeers = MutableStateFlow(peerTrustStore.loadTrustedPeers())
     private val statuses = MutableStateFlow<List<TransportStatus>>(emptyList())
+    private val courierCount = MutableStateFlow(0)
     private val cryptoBox = CryptoBox()
     private val packetGuard = PacketGuard()
     private val fileAssemblies = mutableMapOf<String, PendingFileAssembly>()
+    private val courierPackets = linkedMapOf<String, CourierPacket>()
     private val routerJobs = mutableListOf<Job>()
     private var started = false
 
@@ -74,6 +76,7 @@ class MeshRouter(
     val messages: StateFlow<List<ChatMessage>> = messageLog.asStateFlow()
     val receivedFiles: StateFlow<List<ReceivedFile>> = receivedFileLog.asStateFlow()
     val transportStatuses: StateFlow<List<TransportStatus>> = statuses.asStateFlow()
+    val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
 
     fun start() {
         if (started) return
@@ -83,6 +86,7 @@ class MeshRouter(
                 transport.peers.collect { peers ->
                     updatePeerIndex(peers)
                     flushOutbox()
+                    flushCourierQueue()
                 }
             }
             routerJobs += scope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -100,7 +104,10 @@ class MeshRouter(
             }
             routerJobs += scope.launch { transport.start() }
         }
-        routerJobs += scope.launch { flushOutbox() }
+        routerJobs += scope.launch {
+            flushOutbox()
+            flushCourierQueue()
+        }
     }
 
     fun stop() {
@@ -130,6 +137,8 @@ class MeshRouter(
         outboxItems.value = emptyList()
         receivedFileLog.value = emptyList()
         fileAssemblies.clear()
+        courierPackets.clear()
+        courierCount.value = 0
         chatStore.clear()
         receivedFileStore.clear()
         trustedPeers.value = emptyMap()
@@ -357,13 +366,7 @@ class MeshRouter(
             PacketType.Hello -> Unit
         }
 
-        if (packet.ttl > 0 && localPeerId !in packet.path) {
-            val relayed = packet.copy(
-                ttl = packet.ttl - 1,
-                path = packet.path + localPeerId
-            )
-            broadcastPacket(relayed)
-        }
+        relayOrQueueCourier(packet, verified)
     }
 
     private fun updatePeerIndex(peers: List<Peer>) {
@@ -656,6 +659,63 @@ class MeshRouter(
         return delivered
     }
 
+    private suspend fun relayOrQueueCourier(packet: MeshPacket, verified: Boolean) {
+        if (!shouldRelay(packet, verified)) return
+        val relayed = packet.copy(
+            ttl = packet.ttl - 1,
+            path = packet.path + localPeerId
+        )
+        if (!broadcastPacket(relayed)) {
+            queueCourierPacket(relayed)
+        }
+    }
+
+    private fun shouldRelay(packet: MeshPacket, verified: Boolean): Boolean {
+        return verified &&
+            packet.type != PacketType.Hello &&
+            packet.ttl > 0 &&
+            packet.originId != localPeerId &&
+            localPeerId !in packet.path
+    }
+
+    private fun queueCourierPacket(packet: MeshPacket) {
+        pruneCourierQueue()
+        if (packet.ttl <= 0 || packet.originId == localPeerId) return
+        val now = System.currentTimeMillis()
+        courierPackets.remove(packet.id)
+        courierPackets[packet.id] = CourierPacket(
+            packet = packet,
+            expiresAt = now + COURIER_TTL_MS
+        )
+        while (courierPackets.size > MAX_COURIER_PACKETS) {
+            val eldest = courierPackets.keys.firstOrNull() ?: break
+            courierPackets.remove(eldest)
+        }
+        courierCount.value = courierPackets.size
+    }
+
+    private suspend fun flushCourierQueue() {
+        pruneCourierQueue()
+        if (courierPackets.isEmpty()) return
+        val retained = linkedMapOf<String, CourierPacket>()
+        courierPackets.values.forEach { item ->
+            if (!broadcastPacket(item.packet)) {
+                retained[item.packet.id] = item
+            }
+        }
+        courierPackets.clear()
+        courierPackets.putAll(retained)
+        courierCount.value = courierPackets.size
+    }
+
+    private fun pruneCourierQueue() {
+        if (courierPackets.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val expired = courierPackets.filterValues { it.expiresAt <= now }.keys
+        expired.forEach(courierPackets::remove)
+        courierCount.value = courierPackets.size
+    }
+
     private fun queueOutbox(packet: MeshPacket, targetPeerId: String?) {
         val now = System.currentTimeMillis()
         val item = OutboxItem(
@@ -788,12 +848,19 @@ class MeshRouter(
         var verified: Boolean = true
     )
 
+    private data class CourierPacket(
+        val packet: MeshPacket,
+        val expiresAt: Long
+    )
+
     private companion object {
         const val DEFAULT_TTL = 7
         const val MAX_MESSAGES = 500
         const val MAX_OUTBOX_ITEMS = 1_024
         const val MAX_RECEIVED_FILES = 50
+        const val MAX_COURIER_PACKETS = 256
         const val OUTBOX_TTL_MS = 24L * 60L * 60L * 1_000L
+        const val COURIER_TTL_MS = 15L * 60L * 1_000L
         const val DIRECT_CHANNEL_PREFIX = "dm:"
     }
 }

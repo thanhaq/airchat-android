@@ -17,6 +17,7 @@ data class DiagnosticsSnapshot(
     val peerCount: Int,
     val visibleMessageCount: Int,
     val visibleFileCount: Int,
+    val courierQueueSize: Int,
     val transportStatuses: List<TransportStatus>
 )
 
@@ -36,6 +37,7 @@ object DiagnosticsReportFormatter {
         appendLine("Peers visible: ${snapshot.peerCount}")
         appendLine("Visible messages: ${snapshot.visibleMessageCount}")
         appendLine("Visible files: ${snapshot.visibleFileCount}")
+        appendLine("Courier queue: ${snapshot.courierQueueSize}")
         appendLine("Transports:")
         if (snapshot.transportStatuses.isEmpty()) {
             appendLine("- none")

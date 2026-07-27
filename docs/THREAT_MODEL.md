@@ -9,6 +9,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Authenticate packet origins.
 - Encrypt direct message bodies.
 - Keep relays simple and untrusted.
+- Support bounded opportunistic store-and-forward for verified relay packets.
 
 ## Non-goals for the current version
 
@@ -29,6 +30,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Panic wipe clears message history, outbox, peer cache, identity data on disk, and rotates the in-memory identity for the running process.
 - Relay mutation of TTL/path does not affect origin signatures.
 - Message ids are deduplicated to reduce loops and replay noise.
+- Courier relay stores verified transit packets in memory for a short bounded window when no transport currently accepts the relay.
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
@@ -38,6 +40,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Device names and Wi-Fi Direct metadata may identify users.
 - Public channels are readable by nearby peers.
 - Public-channel file contents are readable by nearby peers while in transit; direct-file contents are encrypted per packet.
+- In-memory courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.
 - Some Android 12+ devices may still use Android Keystore software backing or app-private software identity fallback when hardware-backed signing plus ECDH are unavailable.
 - Trust-on-first-use does not prove identity unless users compare safety numbers out of band.
@@ -47,6 +50,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 ## Planned hardening
 
 - Noise-style interactive session handshake for direct messages.
+- Persistent courier mode with per-peer quotas, relay receipts, and user controls.
 - Per-peer replay windows.
 - Transport quotas and stronger adaptive rate limiting.
 - QR safety number verification.

@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, ACK receipt, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, trust, and key-change behavior.
 
 ## LAN field test
 
@@ -43,6 +43,17 @@ Devices: two physical Android phones with Wi-Fi Direct support.
 4. Confirm the peer state reaches connected.
 5. Send room messages in both directions.
 6. Repeat after locking and unlocking one phone.
+
+## Courier relay test
+
+Devices: three physical Android phones, or two phones plus one emulator/fake transport build.
+
+1. Start phone A and phone B on the same offline Wi-Fi.
+2. Temporarily make phone B unable to reach any other peer except phone A.
+3. Send a verified message from phone A through phone B with relay TTL remaining.
+4. Confirm phone B diagnostics shows a non-zero courier queue if relay broadcast fails.
+5. Bring phone C onto the local mesh within 15 minutes.
+6. Confirm phone B flushes the courier queue and phone C receives the relayed packet once.
 
 ## Trust and DM test
 
@@ -83,7 +94,7 @@ Devices: two physical Android phones with Wi-Fi Direct support.
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, visible peers, visible messages, visible files, and transport states.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, visible peers, visible messages, visible files, courier queue size, and transport states.
 3. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 
 ## Release sign-off

@@ -24,6 +24,7 @@ data class ChatUiState(
     val peers: List<Peer>,
     val messages: List<ChatMessage>,
     val receivedFiles: List<ReceivedFile>,
+    val courierQueueSize: Int,
     val transportStatuses: List<TransportStatus>
 )
 
@@ -37,6 +38,7 @@ private data class RouterState(
     val peers: List<Peer>,
     val messages: List<ChatMessage>,
     val files: List<ReceivedFile>,
+    val courierQueueSize: Int,
     val statuses: List<TransportStatus>
 )
 
@@ -55,9 +57,16 @@ class ChatViewModel(
         router.peers,
         router.messages,
         router.receivedFiles,
+        router.courierQueueSize,
         router.transportStatuses
-    ) { peers, messages, files, statuses ->
-        RouterState(peers = peers, messages = messages, files = files, statuses = statuses)
+    ) { peers, messages, files, courierQueueSize, statuses ->
+        RouterState(
+            peers = peers,
+            messages = messages,
+            files = files,
+            courierQueueSize = courierQueueSize,
+            statuses = statuses
+        )
     }
 
     val uiState: StateFlow<ChatUiState> = combine(composerState, routerState) { composerState, routerState ->
@@ -75,6 +84,7 @@ class ChatViewModel(
             peers = sortedPeers,
             messages = ConversationFilter.apply(routerState.messages, conversation),
             receivedFiles = ConversationFilter.applyFiles(routerState.files, conversation),
+            courierQueueSize = routerState.courierQueueSize,
             transportStatuses = routerState.statuses
         )
     }.stateIn(
@@ -90,6 +100,7 @@ class ChatViewModel(
             peers = emptyList(),
             messages = emptyList(),
             receivedFiles = emptyList(),
+            courierQueueSize = 0,
             transportStatuses = emptyList()
         )
     )
