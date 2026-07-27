@@ -29,6 +29,7 @@ bash ./scripts/preflight.sh
 ## First Release
 
 - Use tag `v0.1.0`.
+- Push tag `v0.1.0` and let `.github/workflows/release.yml` create the draft release package.
 - Attach the debug APK only if the release title or notes clearly say it is a test build.
 - Include the source commit SHA and APK SHA-256.
 - Link the real-device test notes from `docs/TEST_PLAN.md`.

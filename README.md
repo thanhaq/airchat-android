@@ -143,6 +143,12 @@ Or run the preflight helper, which also prints the debug APK SHA-256:
 .\scripts\preflight.ps1
 ```
 
+To package a labeled debug test build and SHA file for GitHub Releases:
+
+```powershell
+.\scripts\package-debug-release.ps1 v0.1.0
+```
+
 On macOS or Linux:
 
 ```bash

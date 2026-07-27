@@ -31,6 +31,22 @@ Then run the real-device checks in [TEST_PLAN.md](TEST_PLAN.md).
 
 For public artifacts, also prepare the source/build evidence described in [VERIFY_RELEASE.md](VERIFY_RELEASE.md).
 
+## Packaging a Test APK
+
+For early field testing, create a labeled debug test package locally:
+
+```powershell
+.\scripts\package-debug-release.ps1 v0.1.0
+```
+
+On macOS or Linux:
+
+```bash
+bash ./scripts/package-debug-release.sh v0.1.0
+```
+
+The package script runs the full preflight gate, copies the debug APK into `release/`, writes `SHA256SUMS.txt`, and drafts release notes. The `release/` folder is ignored so generated artifacts do not enter source control.
+
 ## Versioning
 
 1. Update `versionCode` and `versionName` in `app/build.gradle.kts`.
@@ -52,7 +68,9 @@ Do not commit keystores, passwords, Play Console exports, or private signing mat
 
 ## Release artifact
 
-Use Android Studio's Generate Signed Bundle/APK flow or wire a private CI secret-backed release job later. For early open-source testing, attach a debug APK only if the release notes clearly label it as a test build.
+Pushing a tag like `v0.1.0` runs `.github/workflows/release.yml`. The workflow runs the full preflight gate, uploads the debug test APK, `SHA256SUMS.txt`, and generated notes as an Actions artifact, then creates a draft GitHub Release.
+
+Keep the release as a draft until the real-device test matrix is complete. For early open-source testing, attach a debug APK only if the release notes clearly label it as a test build.
 
 ## Tag checklist
 

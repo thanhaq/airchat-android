@@ -31,6 +31,7 @@
 - Added `.gitattributes` for wrapper script line endings and binary artifacts.
 - Added Dependabot configuration for Gradle and GitHub Actions updates.
 - Added GitHub Actions CI, issue templates, and contribution docs.
+- Added draft GitHub Release workflow and local packaging scripts for debug test APKs plus SHA-256 manifests.
 - Added Android lint to the documented and CI verification gate.
 - Added README badges and app-screen SVG artwork for GitHub presentation.
 - Added demo script for README GIFs, release videos, and social posts.
