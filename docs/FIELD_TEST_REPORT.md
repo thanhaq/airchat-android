@@ -69,6 +69,10 @@ Paste diagnostics from each device below.
 ```text
 ```
 
+## Diagnostics Compare
+
+Run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt> -OutFile <diagnostics-compare.md>` and paste or attach the generated Markdown report.
+
 ## Screenshots And Media
 
 - LAN chat:

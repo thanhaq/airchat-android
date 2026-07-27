@@ -135,6 +135,7 @@ For diagnostics:
 1. Tap the info icon in the top bar.
 2. Check identity-key backing, Android version, private-room code/strength, visible peer/room count, unread-room count, transport states, and recent diagnostic events.
 3. Use `Share` when attaching a field-test report or GitHub issue.
+4. Compare two device reports with `scripts/compare-diagnostics.ps1` when debugging asymmetric discovery or delivery.
 
 ## Build from terminal
 
@@ -196,6 +197,7 @@ Next security milestones:
 - [Threat model](docs/THREAT_MODEL.md)
 - [Android Wi-Fi notes](docs/ANDROID_WIFI_NOTES.md)
 - [Test plan](docs/TEST_PLAN.md)
+- [Diagnostics workflow](docs/DIAGNOSTICS.md)
 - [Demo script](docs/DEMO_SCRIPT.md)
 - [Release guide](docs/RELEASE.md)
 - [Release verification](docs/VERIFY_RELEASE.md)

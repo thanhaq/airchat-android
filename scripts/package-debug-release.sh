@@ -38,6 +38,7 @@ This is an early Android debug test build for offline Wi-Fi mesh field testing.
 
 - Run the LAN, Wi-Fi Direct, DM, file transfer, diagnostics, and background mesh checks in \`docs/TEST_PLAN.md\`.
 - Attach diagnostics text from both test devices.
+- Attach the Markdown comparison from \`scripts/compare-diagnostics.ps1\`.
 - Label the APK as a debug test build until release signing is configured.
 EOF
 

@@ -46,6 +46,7 @@ To publish and trigger the draft release workflow with a tag:
 - Include the source commit SHA and APK SHA-256.
 - Link the real-device test notes from `docs/TEST_PLAN.md`.
 - Include diagnostics text from both test devices.
+- Include the Markdown comparison from `scripts/compare-diagnostics.ps1`.
 - Attach a completed copy of `docs/FIELD_TEST_REPORT.md`.
 - Mention that the app currently has no hosted server, no accounts, and no internet requirement for local Wi-Fi chat.
 

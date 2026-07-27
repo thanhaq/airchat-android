@@ -128,10 +128,13 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 3. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 4. Confirm recent events do not include message bodies, private-room passphrases, or file names.
 5. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
+6. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
+7. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, courier queue counts, and recent event categories.
 
 ## Release sign-off
 
 - Record device model, Android version, and transport used.
 - Attach diagnostics text from both phones.
+- Attach the Markdown output from `scripts/compare-diagnostics.ps1`.
 - Capture at least one screenshot of LAN chat, private-room locked/unlocked state, Wi-Fi Direct peer list, DM verification, and file inbox.
 - Note failures with logcat output and whether battery saver was enabled.
