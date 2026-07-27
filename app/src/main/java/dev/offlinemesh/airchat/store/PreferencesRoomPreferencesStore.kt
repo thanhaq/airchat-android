@@ -25,24 +25,39 @@ class PreferencesRoomPreferencesStore(context: Context) : RoomPreferencesStore {
         saveRooms(KEY_PINNED_ROOMS, rooms)
     }
 
+    override fun loadRoomOrder(): List<String> = loadRoomList(KEY_ROOM_ORDER)
+
+    override fun saveRoomOrder(rooms: List<String>) {
+        saveRoomList(KEY_ROOM_ORDER, rooms.distinct())
+    }
+
     override fun clear() {
         prefs.edit()
             .remove(KEY_KNOWN_ROOMS)
             .remove(KEY_PINNED_ROOMS)
+            .remove(KEY_ROOM_ORDER)
             .apply()
         runCatching { cipher.deleteKey() }
     }
 
     private fun loadRooms(key: String): Set<String> {
-        val raw = prefs.getString(key, null) ?: return emptySet()
+        return loadRoomList(key).toSet()
+    }
+
+    private fun loadRoomList(key: String): List<String> {
+        val raw = prefs.getString(key, null) ?: return emptyList()
         val decoded = runCatching { cipher.decrypt(raw) }.getOrElse { raw }
         return runCatching {
-            json.decodeFromString<List<String>>(decoded).toSet()
-        }.getOrDefault(emptySet())
+            json.decodeFromString<List<String>>(decoded).distinct()
+        }.getOrDefault(emptyList())
     }
 
     private fun saveRooms(key: String, rooms: Set<String>) {
-        val raw = json.encodeToString(rooms.sorted())
+        saveRoomList(key, rooms.sorted())
+    }
+
+    private fun saveRoomList(key: String, rooms: List<String>) {
+        val raw = json.encodeToString(rooms)
         val encrypted = runCatching { cipher.encrypt(raw) }.getOrNull() ?: return
         prefs.edit().putString(key, encrypted).apply()
     }
@@ -50,5 +65,6 @@ class PreferencesRoomPreferencesStore(context: Context) : RoomPreferencesStore {
     private companion object {
         const val KEY_KNOWN_ROOMS = "known_rooms"
         const val KEY_PINNED_ROOMS = "pinned_rooms"
+        const val KEY_ROOM_ORDER = "room_order"
     }
 }

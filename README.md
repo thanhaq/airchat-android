@@ -29,7 +29,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
 - Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
-- Multi-room switcher with unread counts, file counts, private-room markers, and persistent pinned favorites.
+- Multi-room switcher with unread counts, file counts, private-room markers, persistent pinned favorites, and manual room reorder controls.
 - In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, a privacy-preserving recent event log, and share action for field testing.
 - Compose UI with peer list, room strip, channel composer, DM mode, status chips, and verified/unverified message state.
 - Unit tests for packet serialization, direct-message crypto, private-room crypto, room summaries, conversation filtering, packet guard, file chunking, ACK receipts, courier relay, and dedup behavior.
@@ -100,7 +100,8 @@ For rooms:
 
 1. Type `/join room` or edit the channel field to create or switch rooms.
 2. Tap the star beside a room chip to pin or unpin it.
-3. Pinned rooms remain visible across app restarts.
+3. Use the arrow controls beside room chips to move active rooms earlier or later in the strip.
+4. Pinned rooms and room order remain visible across app restarts.
 
 For courier relay:
 
@@ -215,7 +216,6 @@ Next security milestones:
 ## Roadmap
 
 - Camera scan-to-verify for QR safety cards.
-- Room reorder controls.
 - Courier per-peer quotas, relay receipts, and richer expiry tuning.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.

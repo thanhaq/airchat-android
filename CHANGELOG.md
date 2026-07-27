@@ -27,7 +27,7 @@
 - Added Android backup/device-transfer exclusions for encrypted received-file metadata and blobs.
 - Added Android backup/device-transfer exclusions for encrypted courier relay packets.
 - Added IRC-style slash commands: `/join`, `/lock`, `/code`, `/rotate`, `/unlock`, `/room`, `/msg`, `/dm`, `/me`, `/who`, and `/help`.
-- Added multi-room switcher UI with unread counts, file counts, private-room markers, and persistent pinned rooms.
+- Added multi-room switcher UI with unread counts, file counts, private-room markers, persistent pinned rooms, and manual room reorder controls.
 - Added in-app diagnostics report with courier queue size, recent event log, share action, and field-test/GitHub issue details.
 - Added foreground background mesh service with notification controls for longer-lived local discovery and relay.
 - Added privacy-preserving background alerts for new messages and files while background mesh is enabled.

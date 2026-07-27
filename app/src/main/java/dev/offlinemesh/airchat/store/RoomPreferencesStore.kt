@@ -5,5 +5,7 @@ interface RoomPreferencesStore {
     fun saveKnownRooms(rooms: Set<String>)
     fun loadPinnedRooms(): Set<String>
     fun savePinnedRooms(rooms: Set<String>)
+    fun loadRoomOrder(): List<String>
+    fun saveRoomOrder(rooms: List<String>)
     fun clear()
 }

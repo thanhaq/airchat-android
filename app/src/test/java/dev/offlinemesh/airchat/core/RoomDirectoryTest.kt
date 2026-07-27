@@ -87,6 +87,26 @@ class RoomDirectoryTest {
         assertTrue(rooms.single { it.channel == "alerts" }.isPinned)
     }
 
+    @Test
+    fun manualRoomOrderSortsBeforePinnedAndRecentFallbacks() {
+        val rooms = RoomDirectory.summarize(
+            messages = listOf(
+                message(id = "ops", channel = "ops", createdAt = 30L),
+                message(id = "alerts", channel = "alerts", createdAt = 50L),
+                message(id = "field", channel = "field", createdAt = 10L)
+            ),
+            files = emptyList(),
+            privateRooms = emptyMap(),
+            knownRooms = setOf("ops", "alerts", "field"),
+            pinnedRooms = setOf("alerts"),
+            roomOrder = listOf("field", "ops"),
+            selectedChannel = "lobby",
+            readAtByRoom = emptyMap()
+        )
+
+        assertEquals(listOf("lobby", "field", "ops", "alerts"), rooms.map { it.channel })
+    }
+
     private fun message(
         id: String,
         channel: String,

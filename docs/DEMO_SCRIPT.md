@@ -22,7 +22,7 @@ Use this script for a short README GIF, release video, or social post.
 9. Type `/lock demo-passphrase` on phone B and show the same room code plus unlocked message.
 10. Tap the private-room chip and show the QR invite card.
 11. Type `/code` on one phone, then `/rotate demo-passphrase-2` and show the code change.
-12. Pin the `field_ops` room, restart AirChat, and show the pinned room still visible.
+12. Briefly join `maps`, pin the `field_ops` room, move it with the room arrow controls, restart AirChat, and show the pinned room order still visible.
 13. Switch rooms and show an unread count clearing when the room chip is opened.
 14. Type `/who` and show the local peer notice.
 15. Tap the block icon on a peer row, show `Blocked`, then unblock it.
@@ -45,7 +45,7 @@ Use this script for a short README GIF, release video, or social post.
 - "Private-room invite cards carry room metadata and a verification code, but never the passphrase."
 - "QR safety cards make peer-key checks easier without trusting a server."
 - "Room chips make multiple offline channels easy to follow."
-- "Pinned rooms survive restarts, which helps teams keep their working channels ready."
+- "Pinned rooms and room order survive restarts, which helps teams keep their working channels ready."
 - "Delivery receipts come back through the same local mesh."
 - "Slash commands make it feel like a tiny local IRC network."
 - "Peer blocking is local, persistent, and stops display, acknowledgements, relay, and courier storage."

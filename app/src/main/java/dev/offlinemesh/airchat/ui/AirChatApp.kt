@@ -31,6 +31,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.DeleteForever
@@ -154,6 +156,8 @@ fun AirChatApp(container: AppContainer) {
         onChannelChanged = viewModel::updateChannel,
         onSelectRoom = viewModel::selectRoom,
         onToggleRoomPinned = viewModel::toggleRoomPinned,
+        onMoveRoomEarlier = viewModel::moveRoomEarlier,
+        onMoveRoomLater = viewModel::moveRoomLater,
         onShowCourierSettings = { courierSettingsOpen = true },
         onShowRoomVerification = {
             state.privateRoomCode?.let { code ->
@@ -349,6 +353,8 @@ private fun AirChatScreen(
     onChannelChanged: (String) -> Unit,
     onSelectRoom: (String) -> Unit,
     onToggleRoomPinned: (String) -> Unit,
+    onMoveRoomEarlier: (String) -> Unit,
+    onMoveRoomLater: (String) -> Unit,
     onShowCourierSettings: () -> Unit,
     onShowRoomVerification: () -> Unit,
     onSend: () -> Unit,
@@ -465,7 +471,9 @@ private fun AirChatScreen(
             RoomStrip(
                 rooms = state.rooms,
                 onSelectRoom = onSelectRoom,
-                onToggleRoomPinned = onToggleRoomPinned
+                onToggleRoomPinned = onToggleRoomPinned,
+                onMoveRoomEarlier = onMoveRoomEarlier,
+                onMoveRoomLater = onMoveRoomLater
             )
             PeerStrip(
                 peers = state.peers,
@@ -564,9 +572,13 @@ private fun CourierSettingsDialog(
 private fun RoomStrip(
     rooms: List<RoomSummary>,
     onSelectRoom: (String) -> Unit,
-    onToggleRoomPinned: (String) -> Unit
+    onToggleRoomPinned: (String) -> Unit,
+    onMoveRoomEarlier: (String) -> Unit,
+    onMoveRoomLater: (String) -> Unit
 ) {
     if (rooms.isEmpty()) return
+    val visibleRooms = rooms.take(MAX_ROOM_CHIPS)
+    val movableRooms = visibleRooms.filter { it.channel != "lobby" }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 1.dp,
@@ -582,7 +594,8 @@ private fun RoomStrip(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                rooms.take(MAX_ROOM_CHIPS).forEach { room ->
+                visibleRooms.forEach { room ->
+                    val movableIndex = movableRooms.indexOfFirst { it.channel == room.channel }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
                             onClick = { onToggleRoomPinned(room.channel) },
@@ -613,6 +626,28 @@ private fun RoomStrip(
                                 null
                             }
                         )
+                        IconButton(
+                            onClick = { onMoveRoomEarlier(room.channel) },
+                            enabled = movableIndex > 0,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = "Move #${room.channel} earlier",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onMoveRoomLater(room.channel) },
+                            enabled = movableIndex >= 0 && movableIndex < movableRooms.lastIndex,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = "Move #${room.channel} later",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

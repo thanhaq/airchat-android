@@ -32,7 +32,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Locked-room packets received before a key is entered are buffered only in memory for the running process.
 - Identity material, messages, outbox entries, courier relay packets, trust records, room preferences, received-file metadata, and encrypted received-file blobs are excluded from Android backup and device transfer.
 - Message history, outbox JSON, courier relay packets, trust records, received-file metadata, and received-file blobs are encrypted with Android Keystore AES-GCM before persistence.
-- Known-room and pinned-room preferences are encrypted with Android Keystore AES-GCM before persistence.
+- Known-room, pinned-room, and manual room-order preferences are encrypted with Android Keystore AES-GCM before persistence.
 - Panic wipe clears message history, outbox, peer cache, identity data on disk, and rotates the in-memory identity for the running process.
 - Relay mutation of TTL/path does not affect origin signatures.
 - Message ids are deduplicated to reduce loops and replay noise.

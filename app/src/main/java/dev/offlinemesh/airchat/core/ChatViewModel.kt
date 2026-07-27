@@ -84,6 +84,13 @@ private data class CourierState(
     val policy: CourierPolicy
 )
 
+private data class RoomUiPreferences(
+    val knownRooms: Set<String>,
+    val readAtByRoom: Map<String, Long>,
+    val pinnedRooms: Set<String>,
+    val roomOrder: List<String>
+)
+
 class ChatViewModel(
     private val router: MeshRouter,
     private val roomPreferencesStore: RoomPreferencesStore = InMemoryRoomPreferencesStore()
@@ -92,6 +99,7 @@ class ChatViewModel(
     private val channel = MutableStateFlow("lobby")
     private val directPeerId = MutableStateFlow<String?>(null)
     private val pinnedRooms = MutableStateFlow(loadRoomSet(roomPreferencesStore.loadPinnedRooms()))
+    private val roomOrder = MutableStateFlow(loadRoomList(roomPreferencesStore.loadRoomOrder()))
     private val knownRooms = MutableStateFlow(loadRoomSet(roomPreferencesStore.loadKnownRooms(), includeLobby = true) + pinnedRooms.value)
     private val roomReadAt = MutableStateFlow(mapOf("lobby" to Long.MAX_VALUE))
 
@@ -154,13 +162,25 @@ class ChatViewModel(
         )
     }
 
+    private val roomUiPreferences = combine(
+        knownRooms,
+        roomReadAt,
+        pinnedRooms,
+        roomOrder
+    ) { knownRooms, readAtByRoom, pinnedRooms, roomOrder ->
+        RoomUiPreferences(
+            knownRooms = knownRooms,
+            readAtByRoom = readAtByRoom,
+            pinnedRooms = pinnedRooms,
+            roomOrder = roomOrder
+        )
+    }
+
     val uiState: StateFlow<ChatUiState> = combine(
         composerState,
         routerState,
-        knownRooms,
-        roomReadAt,
-        pinnedRooms
-    ) { composerState, routerState, knownRooms, roomReadAt, pinnedRooms ->
+        roomUiPreferences
+    ) { composerState, routerState, roomPreferences ->
         val sortedPeers = routerState.peers.sortedByDescending { it.lastSeenAt }
         val directPeer = sortedPeers.firstOrNull { it.id == composerState.directPeerId }
         val privateRoom = routerState.privateRooms[composerState.channel]
@@ -170,10 +190,11 @@ class ChatViewModel(
             messages = routerState.messages,
             files = routerState.files,
             privateRooms = routerState.privateRooms,
-            knownRooms = knownRooms,
-            pinnedRooms = pinnedRooms,
+            knownRooms = roomPreferences.knownRooms,
+            pinnedRooms = roomPreferences.pinnedRooms,
+            roomOrder = roomPreferences.roomOrder,
             selectedChannel = composerState.channel,
-            readAtByRoom = roomReadAt
+            readAtByRoom = roomPreferences.readAtByRoom
         )
         ChatUiState(
             localPeerId = router.localPeerId,
@@ -256,6 +277,14 @@ class ChatViewModel(
         }
         pinnedRooms.value = next
         roomPreferencesStore.savePinnedRooms(next)
+    }
+
+    fun moveRoomEarlier(room: String) {
+        moveRoom(room, -1)
+    }
+
+    fun moveRoomLater(room: String) {
+        moveRoom(room, 1)
     }
 
     fun sendCurrentMessage() {
@@ -455,10 +484,38 @@ class ChatViewModel(
             knownRooms.value = next
             roomPreferencesStore.saveKnownRooms(next)
         }
+        rememberRoomOrder(sanitized)
     }
 
     private fun markRoomRead(room: String) {
         roomReadAt.value = roomReadAt.value + (room to System.currentTimeMillis())
+    }
+
+    private fun rememberRoomOrder(room: String) {
+        val sanitized = ChatCommandParser.sanitizeChannel(room)
+        if (sanitized == "lobby" || sanitized.startsWith("dm:")) return
+        if (sanitized in roomOrder.value) return
+        val next = roomOrder.value + sanitized
+        roomOrder.value = next
+        roomPreferencesStore.saveRoomOrder(next)
+    }
+
+    private fun moveRoom(room: String, offset: Int) {
+        val sanitized = ChatCommandParser.sanitizeChannel(room)
+        if (sanitized == "lobby" || sanitized.startsWith("dm:")) return
+        val currentRooms = uiState.value.rooms
+            .map { it.channel }
+            .filter { it != "lobby" && !it.startsWith("dm:") }
+        val baseOrder = normalizeRoomOrder(roomOrder.value + currentRooms + knownRooms.value)
+        val index = baseOrder.indexOf(sanitized)
+        if (index < 0) return
+        val nextIndex = (index + offset).coerceIn(baseOrder.indices)
+        if (nextIndex == index) return
+        val reordered = baseOrder.toMutableList()
+        val moving = reordered.removeAt(index)
+        reordered.add(nextIndex, moving)
+        roomOrder.value = reordered
+        roomPreferencesStore.saveRoomOrder(reordered)
     }
 
     fun retryDiscovery() {
@@ -563,6 +620,15 @@ private fun loadRoomSet(rooms: Set<String>, includeLobby: Boolean = false): Set<
         .map(ChatCommandParser::sanitizeChannel)
         .filter { it.isNotBlank() && !it.startsWith("dm:") }
         .toSet()
+}
+
+private fun loadRoomList(rooms: List<String>): List<String> = normalizeRoomOrder(rooms)
+
+private fun normalizeRoomOrder(rooms: Iterable<String>): List<String> {
+    return rooms
+        .map(ChatCommandParser::sanitizeChannel)
+        .filter { it.isNotBlank() && it != "lobby" && !it.startsWith("dm:") }
+        .distinct()
 }
 
 private const val COMMAND_HELP =

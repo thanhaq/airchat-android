@@ -12,12 +12,19 @@ object RoomDirectory {
         privateRooms: Map<String, PrivateRoomStatus>,
         knownRooms: Set<String>,
         pinnedRooms: Set<String>,
+        roomOrder: List<String> = emptyList(),
         selectedChannel: String,
         readAtByRoom: Map<String, Long>
     ): List<RoomSummary> {
+        val orderIndex = roomOrder
+            .filter(::isRoomChannel)
+            .distinct()
+            .withIndex()
+            .associate { (index, room) -> room to index }
         val roomNames = linkedSetOf(DEFAULT_ROOM)
         roomNames += knownRooms.filter(::isRoomChannel)
         roomNames += pinnedRooms.filter(::isRoomChannel)
+        roomNames += roomOrder.filter(::isRoomChannel)
         roomNames += privateRooms.keys.filter(::isRoomChannel)
         roomNames += messages.map { it.channel }.filter(::isRoomChannel)
         roomNames += files.map { it.channel }.filter(::isRoomChannel)
@@ -50,6 +57,7 @@ object RoomDirectory {
             .sortedWith(
                 compareByDescending<RoomSummary> { it.channel == DEFAULT_ROOM }
                     .thenByDescending { it.isSelected }
+                    .thenBy { orderIndex[it.channel] ?: Int.MAX_VALUE }
                     .thenByDescending { it.isPinned }
                     .thenByDescending { it.lastActivityAt }
                     .thenBy { it.channel }

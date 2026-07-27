@@ -3,6 +3,7 @@ package dev.offlinemesh.airchat.store
 class InMemoryRoomPreferencesStore : RoomPreferencesStore {
     private var knownRooms = emptySet<String>()
     private var pinnedRooms = emptySet<String>()
+    private var roomOrder = emptyList<String>()
 
     override fun loadKnownRooms(): Set<String> = knownRooms
 
@@ -16,8 +17,15 @@ class InMemoryRoomPreferencesStore : RoomPreferencesStore {
         pinnedRooms = rooms.toSet()
     }
 
+    override fun loadRoomOrder(): List<String> = roomOrder
+
+    override fun saveRoomOrder(rooms: List<String>) {
+        roomOrder = rooms.toList()
+    }
+
     override fun clear() {
         knownRooms = emptySet()
         pinnedRooms = emptySet()
+        roomOrder = emptyList()
     }
 }

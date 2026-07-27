@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room ordering, QR verification and invite payloads, background alert decisions, diagnostics event logging, trust, peer blocking, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -107,13 +107,14 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Room switcher test
 
 1. On phone A, send a message in `lobby`.
-2. Type `/join ops` on both phones.
+2. Type `/join ops`, then `/join maps` on phone A so there are at least two non-lobby rooms to reorder.
 3. Tap the star beside `ops` and confirm the room stays near the front of the strip.
-4. Restart AirChat and confirm the pinned room remains visible.
-5. Send a message from phone B in `lobby` while phone A is viewing `ops`.
-6. Confirm phone A shows an unread count on the `lobby` room chip.
-7. Tap the `lobby` room chip and confirm the unread count clears.
-8. Receive a file in `ops` and confirm the `ops` room chip shows the file count.
+4. Use the room arrow controls to move `ops` before `maps`.
+5. Restart AirChat and confirm the pinned room and manual order remain visible.
+6. Send a message from phone B in `lobby` while phone A is viewing `ops`.
+7. Confirm phone A shows an unread count on the `lobby` room chip.
+8. Tap the `lobby` room chip and confirm the unread count clears.
+9. Receive a file in `ops` and confirm the `ops` room chip shows the file count.
 
 ## File transfer test
 
