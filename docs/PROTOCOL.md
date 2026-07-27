@@ -101,6 +101,8 @@ The decrypted room payload is a `RoomEnvelope`:
 
 `kind` may be `Text`, `FileManifest`, or `FileChunk`. Private-room files encrypt the same file manifest and chunk records used by public files.
 
+The room verification code shown by the app is not transmitted in packets. It is a short SHA-256 fingerprint of the derived room key and channel name, intended only for out-of-band comparison between participants.
+
 Receivers that have not entered the room key keep a bounded in-memory buffer of locked room packets. When the user later enters the matching passphrase, AirChat attempts to unlock buffered packets for that channel and replaces locked placeholders with verified plaintext.
 
 ## Delivery receipts

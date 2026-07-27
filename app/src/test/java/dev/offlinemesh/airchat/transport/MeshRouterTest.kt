@@ -75,6 +75,7 @@ class MeshRouterTest {
 
         router.sendChannelMessage(channel = "field_ops", body = "move at dawn")
 
+        val status = router.privateRoomStatuses.value.getValue("field_ops")
         val packet = transport.broadcastedPackets.single()
         val payload = MeshPacketCodec.decodePayload<RoomEncryptedPayload>(packet.payload)
         val decrypted = RoomCrypto.decrypt(
@@ -85,6 +86,9 @@ class MeshRouterTest {
         )
         val envelope = MeshPacketCodec.decodePayload<RoomEnvelope>(String(decrypted ?: ByteArray(0)))
         assertEquals(PacketType.RoomEncrypted, packet.type)
+        assertEquals(status, router.privateRoomStatus("field_ops"))
+        assertEquals("fair", status.strengthLabel)
+        assertTrue(status.verificationCode.matches(Regex("[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}")))
         assertTrue(!packet.payload.contains("move at dawn"))
         assertEquals(RoomEnvelopeKind.Text, envelope?.kind)
         assertEquals("move at dawn", envelope?.body)

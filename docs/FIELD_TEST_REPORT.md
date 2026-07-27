@@ -33,7 +33,9 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Wi-Fi Direct discovery |  |  |
 | Wi-Fi Direct link |  |  |
 | Private room lock/unlock |  |  |
+| Private room code compare |  |  |
 | Private room encrypted text |  |  |
+| Private room key rotation |  |  |
 | Safety number compare |  |  |
 | Encrypted DM |  |  |
 | ACK changes sender state to received |  |  |

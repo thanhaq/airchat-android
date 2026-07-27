@@ -7,7 +7,9 @@ sealed interface ChatCommand {
     data class DirectMessage(val target: String, val body: String) : ChatCommand
     data class Action(val body: String) : ChatCommand
     data class LockRoom(val passphrase: String) : ChatCommand
+    data class RotateRoom(val passphrase: String) : ChatCommand
     data object UnlockRoom : ChatCommand
+    data object ShowRoomCode : ChatCommand
     data object ShowPeers : ChatCommand
     data object ShowHelp : ChatCommand
     data class Unknown(val name: String) : ChatCommand
@@ -33,6 +35,13 @@ object ChatCommandParser {
                 ChatCommand.LockRoom(rest.take(MAX_PASSPHRASE_LENGTH))
             }
 
+            "rotate", "rekey" -> if (rest.isBlank()) {
+                ChatCommand.Unknown(name)
+            } else {
+                ChatCommand.RotateRoom(rest.take(MAX_PASSPHRASE_LENGTH))
+            }
+
+            "code", "room-code" -> ChatCommand.ShowRoomCode
             "unlock", "clear-key" -> ChatCommand.UnlockRoom
             "room", "lobby" -> ChatCommand.LeaveDirect
             "msg", "dm", "w", "tell" -> directMessage(name, rest)

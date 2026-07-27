@@ -20,6 +20,8 @@ class DiagnosticsReportFormatterTest {
                 identityKeySecurity = IdentityKeySecurity.AndroidKeyStoreHardwareBacked,
                 channel = "lobby",
                 privateRoomEnabled = true,
+                privateRoomCode = "ABCD-1234-EF56",
+                privateRoomStrength = "strong",
                 directPeerName = null,
                 backgroundMeshEnabled = true,
                 peerCount = 2,
@@ -35,7 +37,7 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("AirChat diagnostics"))
         assertTrue(report.contains("Identity key: Android Keystore hardware-backed"))
         assertTrue(report.contains("Conversation: #lobby"))
-        assertTrue(report.contains("Private room: on"))
+        assertTrue(report.contains("Private room: on / code ABCD-1234-EF56 / strength strong"))
         assertTrue(report.contains("Courier queue: 3"))
         assertTrue(report.contains("- LAN: Ready (Advertising on local Wi-Fi)"))
     }

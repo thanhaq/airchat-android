@@ -53,7 +53,7 @@ To publish and trigger the draft release workflow with a tag:
 
 - Record two physical Android phones.
 - Show internet disabled while Wi-Fi remains connected.
-- Show `/join`, `/lock`, a locked private-room message unlocking after the second phone enters the passphrase, encrypted DM, file receive/save/share, diagnostics, and background mesh notification.
+- Show `/join`, `/lock`, matching room codes, a locked private-room message unlocking after the second phone enters the passphrase, `/rotate`, encrypted DM, file receive/save/share, diagnostics, and background mesh notification.
 - Keep the video under 60 seconds for social posting.
 
 ## Honest Limitations

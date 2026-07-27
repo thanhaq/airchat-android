@@ -18,7 +18,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Wi-Fi Direct peer discovery and connection flow.
 - Signed mesh packets using per-install P-256 identity keys.
 - Encrypted direct messages between peers with known public keys.
-- Passphrase-locked private rooms for encrypted group text and file transfer.
+- Passphrase-locked private rooms for encrypted group text and file transfer, with room verification codes and strength hints.
 - Encrypted local message and outbox persistence through Android Keystore AES-GCM.
 - Foreground background mesh mode so discovery and relay can stay alive after leaving the app.
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
@@ -29,7 +29,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - In-app diagnostics report with identity-key backing, transport states, peer counts, and share action for field testing.
 - Compose UI with peer list, channel composer, DM mode, status chips, and verified/unverified message state.
-- Unit tests for packet serialization, direct-message crypto, conversation filtering, packet guard, file chunking, ACK receipts, courier relay, and dedup behavior.
+- Unit tests for packet serialization, direct-message crypto, private-room crypto, conversation filtering, packet guard, file chunking, ACK receipts, courier relay, and dedup behavior.
 
 ## Why Wi-Fi instead of Bluetooth
 
@@ -97,6 +97,8 @@ Composer commands:
 
 - `/join room` or `/j room` switches to a public channel.
 - `/lock passphrase` encrypts the current room with a shared passphrase held only in memory.
+- `/code` shows the current private room's verification code and passphrase-strength label.
+- `/rotate passphrase` replaces the current room key with a new passphrase.
 - `/unlock` clears the current room key from this device.
 - `/room` or `/lobby` leaves the current DM and returns to room mode.
 - `/msg peer text` or `/dm peer text` sends an encrypted direct message to a matching peer name or peer id prefix.
@@ -130,7 +132,7 @@ For background mesh mode:
 For diagnostics:
 
 1. Tap the info icon in the top bar.
-2. Check identity-key backing, Android version, visible peer count, and transport states.
+2. Check identity-key backing, Android version, private-room code/strength, visible peer count, and transport states.
 3. Use `Share` when attaching a field-test report or GitHub issue.
 
 ## Build from terminal
@@ -169,13 +171,13 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Security model
 
-AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Private rooms derive an in-memory AES-GCM key from the room passphrase and channel name, then encrypt text, file manifests, and file chunks per packet with fresh nonces. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. Public channels are intentionally visible to local peers, similar to IRC rooms on a local mesh.
+AirChat authenticates packets with ECDSA signatures. On Android 12+ new installs prefer non-exportable Android Keystore P-256 identity keys for both signing and ECDH; older or incompatible devices fall back to app-private software keys that are excluded from Android backup. Direct messages are encrypted with ephemeral ECDH over P-256 and AES-GCM. Private rooms derive an in-memory AES-GCM key from the room passphrase and channel name, then encrypt text, file manifests, and file chunks per packet with fresh nonces. Each room key gets a short verification code so participants can compare that they entered the same passphrase without saying the passphrase itself. Local message history, outbox entries, trust records, courier relay packets, and received-file inbox entries are encrypted with Android Keystore AES-GCM keys. Public channels are intentionally visible to local peers, similar to IRC rooms on a local mesh.
 
 Next security milestones:
 
 - Add a Noise-style session handshake for direct messages.
-- Add stronger transport binding and QR safety-number verification.
-- Add passphrase strength hints and private-room key rotation UX.
+- Add stronger transport binding.
+- Add QR safety-number verification.
 
 ## Roadmap
 

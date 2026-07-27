@@ -314,6 +314,7 @@ private fun AirChatScreen(
             MessageComposer(
                 channel = state.channel,
                 privateRoomEnabled = state.privateRoomEnabled,
+                privateRoomCode = state.privateRoomCode,
                 message = state.composer,
                 directPeer = state.directPeer,
                 onChannelChanged = onChannelChanged,
@@ -345,7 +346,7 @@ private fun AirChatScreen(
                 if (state.privateRoomEnabled && state.directPeer == null) {
                     AssistChip(
                         onClick = {},
-                        label = { Text("Private #${state.channel}") },
+                        label = { Text("Private ${state.privateRoomCode ?: "#${state.channel}"}") },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
@@ -586,6 +587,7 @@ private fun MessageBubble(message: ChatMessage) {
 private fun MessageComposer(
     channel: String,
     privateRoomEnabled: Boolean,
+    privateRoomCode: String?,
     message: String,
     directPeer: Peer?,
     onChannelChanged: (String) -> Unit,
@@ -633,7 +635,7 @@ private fun MessageComposer(
                         value = channel,
                         onValueChange = onChannelChanged,
                         singleLine = true,
-                        label = { Text(if (privateRoomEnabled) "Private" else "Channel") },
+                        label = { Text(if (privateRoomEnabled) privateRoomCode ?: "Private" else "Channel") },
                         leadingIcon = if (privateRoomEnabled) {
                             {
                                 Icon(Icons.Default.Lock, contentDescription = null)
@@ -785,6 +787,8 @@ private fun diagnosticsSnapshot(
         identityKeySecurity = identityKeySecurity,
         channel = state.channel,
         privateRoomEnabled = state.privateRoomEnabled,
+        privateRoomCode = state.privateRoomCode,
+        privateRoomStrength = state.privateRoomStrength,
         directPeerName = state.directPeer?.name,
         backgroundMeshEnabled = backgroundMeshEnabled,
         peerCount = state.peers.size,

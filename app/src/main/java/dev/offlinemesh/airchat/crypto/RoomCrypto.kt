@@ -1,6 +1,7 @@
 package dev.offlinemesh.airchat.crypto
 
 import dev.offlinemesh.airchat.protocol.RoomEncryptedPayload
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
@@ -11,7 +12,9 @@ import javax.crypto.spec.SecretKeySpec
 
 data class RoomKey(
     val channel: String,
-    val bytes: ByteArray
+    val bytes: ByteArray,
+    val verificationCode: String,
+    val strength: PassphraseStrength
 )
 
 object RoomCrypto {
@@ -22,9 +25,12 @@ object RoomCrypto {
     private val secureRandom = SecureRandom()
 
     fun deriveRoomKey(channel: String, passphrase: String): RoomKey {
+        val bytes = deriveKeyBytes(channel = channel, passphrase = passphrase)
         return RoomKey(
             channel = channel,
-            bytes = deriveKeyBytes(channel = channel, passphrase = passphrase)
+            bytes = bytes,
+            verificationCode = verificationCode(channel = channel, keyBytes = bytes),
+            strength = PassphraseStrengthMeter.estimate(passphrase)
         )
     }
 
@@ -101,9 +107,27 @@ object RoomCrypto {
     private fun aad(channel: String, packetId: String): ByteArray =
         "airchat-room-v1:$channel:$packetId".toByteArray(Charsets.UTF_8)
 
+    private fun verificationCode(channel: String, keyBytes: ByteArray): String {
+        val input = "airchat-room-code-v1:$channel:".toByteArray(Charsets.UTF_8) + keyBytes
+        val digest = MessageDigest.getInstance("SHA-256").digest(input)
+        return encodeHex(digest.copyOf(6)).chunked(4).joinToString("-")
+    }
+
+    private fun encodeHex(bytes: ByteArray): String {
+        val hex = CharArray(bytes.size * 2)
+        bytes.forEachIndexed { index, value ->
+            val unsigned = value.toInt() and 0xFF
+            hex[index * 2] = HEX_CHARS[unsigned ushr 4]
+            hex[index * 2 + 1] = HEX_CHARS[unsigned and 0x0F]
+        }
+        return String(hex)
+    }
+
     private fun encode(bytes: ByteArray): String =
         Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
 
     private fun decode(value: String): ByteArray =
         Base64.getUrlDecoder().decode(value)
+
+    private val HEX_CHARS = "0123456789ABCDEF".toCharArray()
 }

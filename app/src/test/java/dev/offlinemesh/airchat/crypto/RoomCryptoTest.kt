@@ -52,4 +52,28 @@ class RoomCryptoTest {
         )
         assertNotEquals("private room text", encrypted.ciphertext)
     }
+
+    @Test
+    fun roomVerificationCodeIsStableForMatchingRoomKey() {
+        val first = RoomCrypto.deriveRoomKey(
+            channel = "field_ops",
+            passphrase = "Correct-Horse-72-Field-Radio"
+        )
+        val second = RoomCrypto.deriveRoomKey(
+            channel = "field_ops",
+            passphrase = "Correct-Horse-72-Field-Radio"
+        )
+        val rotated = RoomCrypto.deriveRoomKey(
+            channel = "field_ops",
+            passphrase = "different Correct-Horse-72-Field-Radio"
+        )
+
+        assertEquals(first.verificationCode, second.verificationCode)
+        assertEquals("Strong", first.strength.name)
+        assertNotEquals(first.verificationCode, rotated.verificationCode)
+
+        first.bytes.fill(0)
+        second.bytes.fill(0)
+        rotated.bytes.fill(0)
+    }
 }

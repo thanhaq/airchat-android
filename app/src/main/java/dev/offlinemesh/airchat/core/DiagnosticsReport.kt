@@ -13,6 +13,8 @@ data class DiagnosticsSnapshot(
     val identityKeySecurity: IdentityKeySecurity,
     val channel: String,
     val privateRoomEnabled: Boolean,
+    val privateRoomCode: String?,
+    val privateRoomStrength: String?,
     val directPeerName: String?,
     val backgroundMeshEnabled: Boolean,
     val peerCount: Int,
@@ -34,7 +36,7 @@ object DiagnosticsReportFormatter {
         appendLine("Peer: ${snapshot.nickname} / ${snapshot.localPeerId}")
         appendLine("Identity key: ${identityKeyLabel(snapshot.identityKeySecurity)}")
         appendLine("Conversation: ${conversationLabel(snapshot)}")
-        appendLine("Private room: ${if (snapshot.privateRoomEnabled) "on" else "off"}")
+        appendLine("Private room: ${privateRoomLabel(snapshot)}")
         appendLine("Background mesh: ${if (snapshot.backgroundMeshEnabled) "on" else "off"}")
         appendLine("Peers visible: ${snapshot.peerCount}")
         appendLine("Visible messages: ${snapshot.visibleMessageCount}")
@@ -61,5 +63,14 @@ object DiagnosticsReportFormatter {
 
     private fun conversationLabel(snapshot: DiagnosticsSnapshot): String {
         return snapshot.directPeerName?.let { "DM with $it" } ?: "#${snapshot.channel}"
+    }
+
+    private fun privateRoomLabel(snapshot: DiagnosticsSnapshot): String {
+        if (!snapshot.privateRoomEnabled) return "off"
+        return listOfNotNull(
+            "on",
+            snapshot.privateRoomCode?.let { "code $it" },
+            snapshot.privateRoomStrength?.let { "strength $it" }
+        ).joinToString(" / ")
     }
 }

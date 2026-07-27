@@ -3,6 +3,7 @@ package dev.offlinemesh.airchat.core
 import androidx.lifecycle.ViewModel
 import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.Peer
+import dev.offlinemesh.airchat.model.PrivateRoomStatus
 import dev.offlinemesh.airchat.model.ReceivedFile
 import dev.offlinemesh.airchat.model.TransportStatus
 import dev.offlinemesh.airchat.transport.MeshRouter
@@ -20,6 +21,8 @@ data class ChatUiState(
     val localPublicKey: String,
     val channel: String,
     val privateRoomEnabled: Boolean,
+    val privateRoomCode: String?,
+    val privateRoomStrength: String?,
     val directPeer: Peer?,
     val composer: String,
     val peers: List<Peer>,
@@ -40,7 +43,7 @@ private data class RouterState(
     val messages: List<ChatMessage>,
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
-    val privateRoomChannels: Set<String>,
+    val privateRooms: Map<String, PrivateRoomStatus>,
     val statuses: List<TransportStatus>
 )
 
@@ -49,7 +52,7 @@ private data class RouterCoreState(
     val messages: List<ChatMessage>,
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
-    val privateRoomChannels: Set<String>
+    val privateRooms: Map<String, PrivateRoomStatus>
 )
 
 class ChatViewModel(
@@ -68,14 +71,14 @@ class ChatViewModel(
         router.messages,
         router.receivedFiles,
         router.courierQueueSize,
-        router.privateRoomChannels
-    ) { peers, messages, files, courierQueueSize, privateRoomChannels ->
+        router.privateRoomStatuses
+    ) { peers, messages, files, courierQueueSize, privateRooms ->
         RouterCoreState(
             peers = peers,
             messages = messages,
             files = files,
             courierQueueSize = courierQueueSize,
-            privateRoomChannels = privateRoomChannels
+            privateRooms = privateRooms
         )
     }
 
@@ -85,7 +88,7 @@ class ChatViewModel(
             messages = coreState.messages,
             files = coreState.files,
             courierQueueSize = coreState.courierQueueSize,
-            privateRoomChannels = coreState.privateRoomChannels,
+            privateRooms = coreState.privateRooms,
             statuses = statuses
         )
     }
@@ -93,6 +96,7 @@ class ChatViewModel(
     val uiState: StateFlow<ChatUiState> = combine(composerState, routerState) { composerState, routerState ->
         val sortedPeers = routerState.peers.sortedByDescending { it.lastSeenAt }
         val directPeer = sortedPeers.firstOrNull { it.id == composerState.directPeerId }
+        val privateRoom = routerState.privateRooms[composerState.channel]
         val conversation = directPeer?.let { Conversation.Direct(it.id) }
             ?: Conversation.Room(composerState.channel)
         ChatUiState(
@@ -100,7 +104,9 @@ class ChatViewModel(
             nickname = router.localName,
             localPublicKey = router.localPublicKey,
             channel = composerState.channel,
-            privateRoomEnabled = composerState.channel in routerState.privateRoomChannels,
+            privateRoomEnabled = privateRoom != null,
+            privateRoomCode = privateRoom?.verificationCode,
+            privateRoomStrength = privateRoom?.strengthLabel,
             directPeer = directPeer,
             composer = composerState.text,
             peers = sortedPeers,
@@ -118,6 +124,8 @@ class ChatViewModel(
             localPublicKey = router.localPublicKey,
             channel = "lobby",
             privateRoomEnabled = false,
+            privateRoomCode = null,
+            privateRoomStrength = null,
             directPeer = null,
             composer = "",
             peers = emptyList(),
@@ -147,7 +155,9 @@ class ChatViewModel(
             is ChatCommand.DirectMessage -> sendCommandDirectMessage(command, input)
             is ChatCommand.Action -> sendText("* ${router.localName} ${command.body}", input)
             is ChatCommand.LockRoom -> lockCurrentRoom(command.passphrase)
+            is ChatCommand.RotateRoom -> rotateCurrentRoom(command.passphrase)
             ChatCommand.UnlockRoom -> unlockCurrentRoom()
+            ChatCommand.ShowRoomCode -> showRoomCode()
             ChatCommand.ShowPeers -> showPeerNotice()
             ChatCommand.ShowHelp -> router.appendLocalNotice(activeConversationChannel(), COMMAND_HELP)
             is ChatCommand.Unknown -> {
@@ -183,7 +193,17 @@ class ChatViewModel(
         directPeerId.value = null
         val locked = router.setRoomPassphrase(channel.value, passphrase)
         if (locked) {
-            router.appendLocalNotice(channel.value, "Private room enabled for #${channel.value}")
+            router.appendLocalNotice(channel.value, roomStatusNotice("Private room enabled"))
+        } else {
+            router.appendLocalNotice(channel.value, "Room passphrase was empty")
+        }
+    }
+
+    private fun rotateCurrentRoom(passphrase: String) {
+        directPeerId.value = null
+        val rotated = router.setRoomPassphrase(channel.value, passphrase)
+        if (rotated) {
+            router.appendLocalNotice(channel.value, roomStatusNotice("Private room key rotated"))
         } else {
             router.appendLocalNotice(channel.value, "Room passphrase was empty")
         }
@@ -198,6 +218,26 @@ class ChatViewModel(
             "No private-room key set for #${channel.value}"
         }
         router.appendLocalNotice(channel.value, body)
+    }
+
+    private fun showRoomCode() {
+        directPeerId.value = null
+        val status = router.privateRoomStatus(channel.value)
+        val body = if (status == null) {
+            "No private-room key set for #${channel.value}"
+        } else {
+            "Room code for #${channel.value}: ${status.verificationCode} / strength ${status.strengthLabel}"
+        }
+        router.appendLocalNotice(channel.value, body)
+    }
+
+    private fun roomStatusNotice(prefix: String): String {
+        val status = router.privateRoomStatus(channel.value)
+        return if (status == null) {
+            "$prefix for #${channel.value}"
+        } else {
+            "$prefix for #${channel.value} / code ${status.verificationCode} / strength ${status.strengthLabel}"
+        }
     }
 
     private fun sendCommandDirectMessage(command: ChatCommand.DirectMessage, originalInput: String) {
@@ -286,4 +326,4 @@ class ChatViewModel(
 }
 
 private const val COMMAND_HELP =
-    "Commands: /join room, /lock passphrase, /unlock, /room, /msg peer text, /me action, /who."
+    "Commands: /join room, /lock passphrase, /code, /rotate passphrase, /unlock, /room, /msg peer text, /me action, /who."

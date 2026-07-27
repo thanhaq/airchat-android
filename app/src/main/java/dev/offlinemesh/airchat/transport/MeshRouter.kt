@@ -12,6 +12,7 @@ import dev.offlinemesh.airchat.model.DeliveryState
 import dev.offlinemesh.airchat.model.OutboxItem
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerTrustState
+import dev.offlinemesh.airchat.model.PrivateRoomStatus
 import dev.offlinemesh.airchat.model.ReceivedFile
 import dev.offlinemesh.airchat.model.TransportStatus
 import dev.offlinemesh.airchat.model.TrustedPeer
@@ -73,7 +74,7 @@ class MeshRouter(
     private val courierPackets = loadInitialCourierPackets()
     private val courierCount = MutableStateFlow(courierPackets.size)
     private val roomKeys = mutableMapOf<String, RoomKey>()
-    private val encryptedRoomChannels = MutableStateFlow<Set<String>>(emptySet())
+    private val privateRoomStatusMap = MutableStateFlow<Map<String, PrivateRoomStatus>>(emptyMap())
     private val lockedRoomPackets = linkedMapOf<String, MeshPacket>()
     private val routerJobs = mutableListOf<Job>()
     private var started = false
@@ -89,7 +90,7 @@ class MeshRouter(
     val receivedFiles: StateFlow<List<ReceivedFile>> = receivedFileLog.asStateFlow()
     val transportStatuses: StateFlow<List<TransportStatus>> = statuses.asStateFlow()
     val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
-    val privateRoomChannels: StateFlow<Set<String>> = encryptedRoomChannels.asStateFlow()
+    val privateRoomStatuses: StateFlow<Map<String, PrivateRoomStatus>> = privateRoomStatusMap.asStateFlow()
 
     fun start() {
         if (started) return
@@ -154,7 +155,7 @@ class MeshRouter(
         courierCount.value = 0
         roomKeys.values.forEach { it.bytes.fill(0) }
         roomKeys.clear()
-        encryptedRoomChannels.value = emptySet()
+        publishPrivateRoomState()
         lockedRoomPackets.clear()
         courierStore.clear()
         chatStore.clear()
@@ -196,7 +197,7 @@ class MeshRouter(
         if (normalized.isBlank() || trimmedPassphrase.isBlank()) return false
         roomKeys.remove(normalized)?.bytes?.fill(0)
         roomKeys[normalized] = RoomCrypto.deriveRoomKey(normalized, trimmedPassphrase)
-        encryptedRoomChannels.value = roomKeys.keys.toSet()
+        publishPrivateRoomState()
         scope.launch {
             unlockBufferedRoomPackets(normalized)
         }
@@ -206,9 +207,12 @@ class MeshRouter(
     fun clearRoomPassphrase(channel: String): Boolean {
         val removed = roomKeys.remove(channel.trim())
         removed?.bytes?.fill(0)
-        encryptedRoomChannels.value = roomKeys.keys.toSet()
+        publishPrivateRoomState()
         return removed != null
     }
+
+    fun privateRoomStatus(channel: String): PrivateRoomStatus? =
+        privateRoomStatusMap.value[channel.trim()]
 
     fun forgetTrustedPeer(peerId: String) {
         peerTrustStore.forgetPeer(peerId)
@@ -456,6 +460,16 @@ class MeshRouter(
         visiblePeers.value = peerIndex.value.values
             .filterNot { it.id == localPeerId }
             .map { peer -> peer.copy(trustState = trustStateFor(peer)) }
+    }
+
+    private fun publishPrivateRoomState() {
+        privateRoomStatusMap.value = roomKeys.mapValues { (channel, roomKey) ->
+            PrivateRoomStatus(
+                channel = channel,
+                verificationCode = roomKey.verificationCode,
+                strengthLabel = roomKey.strength.label
+            )
+        }
     }
 
     private fun trustStateFor(peer: Peer): PeerTrustState {
