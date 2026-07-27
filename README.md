@@ -150,6 +150,12 @@ To package a labeled debug test build and SHA file for GitHub Releases:
 .\scripts\package-debug-release.ps1 v0.1.0
 ```
 
+To publish after creating an empty GitHub repository:
+
+```powershell
+.\scripts\publish-github.ps1 https://github.com/<owner>/airchat-android.git -Tag v0.1.0
+```
+
 On macOS or Linux:
 
 ```bash
@@ -187,6 +193,7 @@ Next security milestones:
 - [Release guide](docs/RELEASE.md)
 - [Release verification](docs/VERIFY_RELEASE.md)
 - [GitHub launch checklist](docs/GITHUB_LAUNCH.md)
+- [Field test report template](docs/FIELD_TEST_REPORT.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Privacy policy](PRIVACY_POLICY.md)
 

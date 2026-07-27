@@ -30,6 +30,7 @@ bash ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
 Then run the real-device checks in [TEST_PLAN.md](TEST_PLAN.md).
 
 For public artifacts, also prepare the source/build evidence described in [VERIFY_RELEASE.md](VERIFY_RELEASE.md).
+Use [FIELD_TEST_REPORT.md](FIELD_TEST_REPORT.md) to record device and transport evidence.
 
 ## Packaging a Test APK
 
@@ -77,6 +78,7 @@ Keep the release as a draft until the real-device test matrix is complete. For e
 - CI passes on the release commit.
 - Manual LAN, Wi-Fi Direct, DM, file persistence, share, and background mesh checks are recorded.
 - Slash command checks are recorded.
+- Field test report is completed.
 - APK SHA-256 and source commit are listed in the release notes.
 - Screenshots are refreshed.
 - Known limitations are called out in the release notes.

@@ -26,6 +26,18 @@ On macOS or Linux:
 bash ./scripts/preflight.sh
 ```
 
+Create an empty GitHub repository, then publish:
+
+```powershell
+.\scripts\publish-github.ps1 https://github.com/<owner>/airchat-android.git
+```
+
+To publish and trigger the draft release workflow with a tag:
+
+```powershell
+.\scripts\publish-github.ps1 https://github.com/<owner>/airchat-android.git -Tag v0.1.0
+```
+
 ## First Release
 
 - Use tag `v0.1.0`.
@@ -34,6 +46,7 @@ bash ./scripts/preflight.sh
 - Include the source commit SHA and APK SHA-256.
 - Link the real-device test notes from `docs/TEST_PLAN.md`.
 - Include diagnostics text from both test devices.
+- Attach a completed copy of `docs/FIELD_TEST_REPORT.md`.
 - Mention that the app currently has no hosted server, no accounts, and no internet requirement for local Wi-Fi chat.
 
 ## Demo Assets
