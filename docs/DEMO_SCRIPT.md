@@ -25,14 +25,15 @@ Use this script for a short README GIF, release video, or social post.
 12. Pin the `field_ops` room, restart AirChat, and show the pinned room still visible.
 13. Switch rooms and show an unread count clearing when the room chip is opened.
 14. Type `/who` and show the local peer notice.
-15. Open the peer row and show the safety number.
-16. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
-17. Type `/msg <peer> encrypted hello` to send a private message.
-18. Attach a small text file in DM mode.
-19. Show the receiver's file strip with save and share actions.
-20. Tap the `Courier` chip and show relay retention plus clear queue controls.
-21. Open diagnostics and show transport/key/courier status plus recent events.
-22. Enable background mesh mode and show the persistent notification.
+15. Tap the block icon on a peer row, show `Blocked`, then unblock it.
+16. Open the peer row and show the safety number.
+17. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
+18. Type `/msg <peer> encrypted hello` to send a private message.
+19. Attach a small text file in DM mode.
+20. Show the receiver's file strip with save and share actions.
+21. Tap the `Courier` chip and show relay retention plus clear queue controls.
+22. Open diagnostics and show transport/key/courier status plus recent events.
+23. Enable background mesh mode and show the persistent notification.
 
 ## Voiceover beats
 
@@ -47,6 +48,7 @@ Use this script for a short README GIF, release video, or social post.
 - "Pinned rooms survive restarts, which helps teams keep their working channels ready."
 - "Delivery receipts come back through the same local mesh."
 - "Slash commands make it feel like a tiny local IRC network."
+- "Peer blocking is local, persistent, and stops display, acknowledgements, relay, and courier storage."
 - "Diagnostics make device testing and issue reports easier."
 - "Recent events show what the mesh was doing without exposing chat text."
 - "The outbox keeps messages ready for the next peer contact."

@@ -18,6 +18,7 @@
 - Added conversation filtering and safety-number fingerprints in peer rows.
 - Added QR safety-number and private-room code cards for out-of-band verification.
 - Added encrypted trust store, peer trust confirmation, and key-change blocking for direct sends.
+- Added encrypted peer blocklist with UI actions, slash commands, diagnostics, and inbound packet drops.
 - Added public-channel and encrypted direct file transfer with Android picker, manifest/chunk packets, persistent encrypted inbox, and SHA-256 reassembly checks.
 - Added encrypted local persistence for received-file inbox metadata and blobs.
 - Added save-to-device UI for received files.

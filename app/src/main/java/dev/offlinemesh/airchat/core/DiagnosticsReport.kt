@@ -25,6 +25,7 @@ data class DiagnosticsSnapshot(
     val roomCount: Int,
     val unreadRoomCount: Int,
     val pinnedRoomCount: Int,
+    val blockedPeerCount: Int,
     val visibleMessageCount: Int,
     val visibleFileCount: Int,
     val courierQueueSize: Int,
@@ -52,6 +53,7 @@ object DiagnosticsReportFormatter {
         appendLine("Rooms visible: ${snapshot.roomCount}")
         appendLine("Rooms unread: ${snapshot.unreadRoomCount}")
         appendLine("Rooms pinned: ${snapshot.pinnedRoomCount}")
+        appendLine("Peers blocked: ${snapshot.blockedPeerCount}")
         appendLine("Visible messages: ${snapshot.visibleMessageCount}")
         appendLine("Visible files: ${snapshot.visibleFileCount}")
         appendLine("Courier queue: ${snapshot.courierQueueSize}")

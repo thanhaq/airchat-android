@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.store.PreferencesCourierStore
+import dev.offlinemesh.airchat.store.PreferencesPeerBlockStore
 import dev.offlinemesh.airchat.store.PreferencesPeerTrustStore
 import dev.offlinemesh.airchat.store.PreferencesChatStore
 import dev.offlinemesh.airchat.store.PreferencesReceivedFileStore
@@ -33,12 +34,14 @@ class AppContainer(context: Context) {
     val receivedFileStore = PreferencesReceivedFileStore(appContext)
     val courierStore = PreferencesCourierStore(appContext)
     val roomPreferencesStore = PreferencesRoomPreferencesStore(appContext)
+    val peerBlockStore = PreferencesPeerBlockStore(appContext)
     val lanTransport = LanTransport(appContext, identityStore, scope)
     val wifiDirectTransport = WifiDirectTransport(appContext, identityStore, scope)
     val router = MeshRouter(
         localIdentity = identityStore,
         chatStore = chatStore,
         peerTrustStore = peerTrustStore,
+        peerBlockStore = peerBlockStore,
         receivedFileStore = receivedFileStore,
         courierStore = courierStore,
         transports = listOf(lanTransport, wifiDirectTransport),

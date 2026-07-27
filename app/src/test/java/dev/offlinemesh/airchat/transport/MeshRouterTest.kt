@@ -26,6 +26,7 @@ import dev.offlinemesh.airchat.protocol.RoomEnvelope
 import dev.offlinemesh.airchat.protocol.RoomEnvelopeKind
 import dev.offlinemesh.airchat.store.InMemoryChatStore
 import dev.offlinemesh.airchat.store.InMemoryCourierStore
+import dev.offlinemesh.airchat.store.InMemoryPeerBlockStore
 import dev.offlinemesh.airchat.store.InMemoryPeerTrustStore
 import dev.offlinemesh.airchat.store.InMemoryReceivedFileStore
 import dev.offlinemesh.airchat.testutil.FakeTransport
@@ -421,6 +422,75 @@ class MeshRouterTest {
         val packet = store.loadCourierPackets().single()
         assertTrue(packet.expiresAt >= before + 5L * 60L * 1_000L)
         assertTrue(packet.expiresAt <= after + 5L * 60L * 1_000L)
+    }
+
+    @Test
+    fun blockedPeerPacketsAreDroppedBeforeDisplayAckAndRelay() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val blockStore = InMemoryPeerBlockStore()
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            peerBlockStore = blockStore,
+            courierStore = InMemoryCourierStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        transport.publishPeers(listOf(peerFor(alice)))
+        advanceUntilIdle()
+
+        assertTrue(router.blockPeer(alice.peerId))
+        advanceUntilIdle()
+        val packet = signedPacket(
+            identity = alice,
+            id = "blocked-chat",
+            type = PacketType.Chat,
+            channel = "lobby",
+            payload = "blocked text"
+        )
+
+        transport.emitPacket(packet, peerFor(alice))
+        advanceUntilIdle()
+
+        assertEquals(setOf(alice.peerId), blockStore.loadBlockedPeers())
+        assertTrue(router.peers.value.single { it.id == alice.peerId }.isBlocked)
+        assertTrue(router.messages.value.isEmpty())
+        assertEquals(0, router.courierQueueSize.value)
+        assertTrue(transport.broadcastedPackets.none { it.type == PacketType.Ack || it.id == "blocked-chat" })
+        assertTrue(router.diagnostics.value.any { it.category == "block" && it.detail.contains("dropped Chat") })
+    }
+
+    @Test
+    fun blockedPeerPreventsDirectSendsAndCanBeUnblocked() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            peerBlockStore = InMemoryPeerBlockStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        transport.publishPeers(listOf(peerFor(alice)))
+        advanceUntilIdle()
+
+        router.blockPeer(alice.peerId)
+        advanceUntilIdle()
+        val blockedSend = router.sendDirectMessage(alice.peerId, "nope")
+
+        router.unblockPeer(alice.peerId)
+        advanceUntilIdle()
+        val allowedSend = router.sendDirectMessage(alice.peerId, "hello again")
+
+        assertEquals(false, blockedSend)
+        assertEquals(true, allowedSend)
+        assertEquals(1, router.messages.value.size)
+        assertTrue(!router.peers.value.single { it.id == alice.peerId }.isBlocked)
     }
 
     @Test

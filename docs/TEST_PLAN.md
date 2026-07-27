@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room ordering, QR verification payloads, diagnostics event logging, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room ordering, QR verification payloads, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -67,6 +67,9 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 5. Confirm the message appears only in the direct conversation.
 6. Confirm the sender changes the DM from sent to received only after the recipient receives it.
 7. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
+8. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
+9. Type `/block` and confirm phone B is listed.
+10. Type `/unblock <peer>` and confirm DMs can be sent again.
 
 ## Private room test
 
@@ -92,9 +95,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 5. Type `/rotate new-shared-field-passphrase` and confirm the code changes.
 6. Type `/unlock` and confirm the room returns to public mode.
 7. Type `/who` and confirm the visible peer list appears as a local notice.
-8. Type `/msg <peer name or id prefix> command test` and confirm the peer receives it in DM mode.
-9. Type `/me checks relay` and confirm the action text is sent to the active room or DM.
-10. Type `/room` and confirm the composer returns to room mode.
+8. Type `/block <peer name or id prefix>` and confirm the peer row shows blocked.
+9. Type `/block` and confirm blocked peers appear as a local notice.
+10. Type `/unblock <peer name or id prefix>` and confirm the peer row returns to normal.
+11. Type `/msg <peer name or id prefix> command test` and confirm the peer receives it in DM mode.
+12. Type `/me checks relay` and confirm the action text is sent to the active room or DM.
+13. Type `/room` and confirm the composer returns to room mode.
 
 ## Room switcher test
 
@@ -130,13 +136,13 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, transport states, and recent events.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, blocked peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, transport states, and recent events.
 3. Confirm the report includes pinned room count after pinning a room.
 4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
 6. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 7. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
-8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, pinned-room counts, courier queue counts, and recent event categories.
+8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, pinned-room counts, blocked-peer counts, courier queue counts, and recent event categories.
 
 ## Release sign-off
 

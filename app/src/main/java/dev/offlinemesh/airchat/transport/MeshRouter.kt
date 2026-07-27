@@ -39,8 +39,10 @@ import dev.offlinemesh.airchat.store.ChatStore
 import dev.offlinemesh.airchat.store.CourierStore
 import dev.offlinemesh.airchat.store.InMemoryChatStore
 import dev.offlinemesh.airchat.store.InMemoryCourierStore
+import dev.offlinemesh.airchat.store.InMemoryPeerBlockStore
 import dev.offlinemesh.airchat.store.InMemoryPeerTrustStore
 import dev.offlinemesh.airchat.store.InMemoryReceivedFileStore
+import dev.offlinemesh.airchat.store.PeerBlockStore
 import dev.offlinemesh.airchat.store.PeerTrustStore
 import dev.offlinemesh.airchat.store.ReceivedFileStore
 import dev.offlinemesh.airchat.transport.wifidirect.WifiDirectTransport
@@ -57,6 +59,7 @@ class MeshRouter(
     private val localIdentity: MeshIdentity,
     private val chatStore: ChatStore = InMemoryChatStore(),
     private val peerTrustStore: PeerTrustStore = InMemoryPeerTrustStore(),
+    private val peerBlockStore: PeerBlockStore = InMemoryPeerBlockStore(),
     private val receivedFileStore: ReceivedFileStore = InMemoryReceivedFileStore(),
     private val courierStore: CourierStore = InMemoryCourierStore(),
     private val transports: List<MeshTransport>,
@@ -69,6 +72,7 @@ class MeshRouter(
     private val outboxItems = MutableStateFlow(chatStore.loadOutbox())
     private val receivedFileLog = MutableStateFlow(receivedFileStore.loadReceivedFiles().takeLast(MAX_RECEIVED_FILES))
     private val trustedPeers = MutableStateFlow(peerTrustStore.loadTrustedPeers())
+    private val blockedPeerSet = MutableStateFlow(peerBlockStore.loadBlockedPeers())
     private val statuses = MutableStateFlow<List<TransportStatus>>(emptyList())
     private val diagnosticEvents = MutableStateFlow<List<DiagnosticEvent>>(emptyList())
     private val cryptoBox = CryptoBox()
@@ -94,6 +98,7 @@ class MeshRouter(
     val receivedFiles: StateFlow<List<ReceivedFile>> = receivedFileLog.asStateFlow()
     val transportStatuses: StateFlow<List<TransportStatus>> = statuses.asStateFlow()
     val diagnostics: StateFlow<List<DiagnosticEvent>> = diagnosticEvents.asStateFlow()
+    val blockedPeerIds: StateFlow<Set<String>> = blockedPeerSet.asStateFlow()
     val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
     val courierPolicy: StateFlow<CourierPolicy> = courierPolicyState.asStateFlow()
     val privateRoomStatuses: StateFlow<Map<String, PrivateRoomStatus>> = privateRoomStatusMap.asStateFlow()
@@ -173,6 +178,27 @@ class MeshRouter(
         }
     }
 
+    fun blockPeer(peerId: String): Boolean {
+        val normalized = peerId.trim()
+        if (normalized.isBlank() || normalized == localPeerId) return false
+        peerBlockStore.blockPeer(normalized)
+        blockedPeerSet.value = peerBlockStore.loadBlockedPeers()
+        dropOutboxForBlockedPeer(normalized)
+        refreshVisiblePeers()
+        logEvent("block", "blocked ${normalized.take(6)}")
+        return true
+    }
+
+    fun unblockPeer(peerId: String): Boolean {
+        val normalized = peerId.trim()
+        if (normalized.isBlank()) return false
+        peerBlockStore.unblockPeer(normalized)
+        blockedPeerSet.value = peerBlockStore.loadBlockedPeers()
+        refreshVisiblePeers()
+        logEvent("block", "unblocked ${normalized.take(6)}")
+        return true
+    }
+
     fun clearLocalState() {
         deduper.clear()
         packetGuard.clear()
@@ -193,11 +219,14 @@ class MeshRouter(
         receivedFileStore.clear()
         trustedPeers.value = emptyMap()
         peerTrustStore.clear()
+        blockedPeerSet.value = emptySet()
+        peerBlockStore.clear()
         diagnosticEvents.value = emptyList()
         logEvent("privacy", "local state wiped")
     }
 
     fun trustPeer(peerId: String): Boolean {
+        if (isPeerBlocked(peerId)) return false
         val peer = peerIndex.value[peerId] ?: return false
         val publicKey = peer.publicKey ?: return false
         val trustedPeer = TrustedPeer(
@@ -288,6 +317,10 @@ class MeshRouter(
     }
 
     suspend fun sendDirectMessage(peerId: String, body: String): Boolean {
+        if (isPeerBlocked(peerId)) {
+            logEvent("block", "blocked direct send to ${peerId.take(6)}")
+            return false
+        }
         val peer = peerIndex.value[peerId] ?: return false
         if (trustStateFor(peer) == PeerTrustState.KeyChanged) return false
         val peerPublicKey = peer.publicKey ?: return false
@@ -321,6 +354,10 @@ class MeshRouter(
         mimeType: String,
         bytes: ByteArray
     ): Boolean {
+        if (isPeerBlocked(peerId)) {
+            logEvent("block", "blocked direct file to ${peerId.take(6)}")
+            return false
+        }
         val peer = peerIndex.value[peerId] ?: return false
         if (trustStateFor(peer) == PeerTrustState.KeyChanged) return false
         val peerPublicKey = peer.publicKey ?: return false
@@ -472,6 +509,10 @@ class MeshRouter(
         event.remotePeer?.let { peer ->
             updatePeerIndex(listOf(peer))
         }
+        if (isPeerBlocked(packet.originId)) {
+            logEvent("block", "dropped ${packet.type.name} from ${packet.originId.take(6)}")
+            return
+        }
 
         val verified = packet.signature?.let {
             IdentityStore.verify(
@@ -514,10 +555,19 @@ class MeshRouter(
     }
 
     private fun refreshVisiblePeers() {
+        val blocked = blockedPeerSet.value
         visiblePeers.value = peerIndex.value.values
             .filterNot { it.id == localPeerId }
-            .map { peer -> peer.copy(trustState = trustStateFor(peer)) }
+            .map { peer ->
+                peer.copy(
+                    trustState = trustStateFor(peer),
+                    isBlocked = peer.id in blocked
+                )
+            }
     }
+
+    private fun isPeerBlocked(peerId: String): Boolean =
+        peerId in blockedPeerSet.value
 
     private fun publishPrivateRoomState() {
         privateRoomStatusMap.value = roomKeys.mapValues { (channel, roomKey) ->
@@ -1049,6 +1099,10 @@ class MeshRouter(
     }
 
     private fun queueOutbox(packet: MeshPacket, targetPeerId: String?) {
+        if (targetPeerId != null && isPeerBlocked(targetPeerId)) {
+            logEvent("block", "dropped queued packet to ${targetPeerId.take(6)}")
+            return
+        }
         val now = System.currentTimeMillis()
         val item = OutboxItem(
             id = packet.id,
@@ -1069,6 +1123,11 @@ class MeshRouter(
         val retained = mutableListOf<OutboxItem>()
         var changed = false
         outboxItems.value.forEach { item ->
+            if (item.targetPeerId != null && isPeerBlocked(item.targetPeerId)) {
+                changed = true
+                logEvent("block", "dropped outbox packet to ${item.targetPeerId.take(6)}")
+                return@forEach
+            }
             if (item.nextAttemptAt > now) {
                 retained += item
                 return@forEach
@@ -1101,10 +1160,19 @@ class MeshRouter(
     }
 
     private suspend fun sendTargetedOrBroadcast(peerId: String, packet: MeshPacket): Boolean {
+        if (isPeerBlocked(peerId)) return false
         for (transport in transports) {
             if (transport.send(peerId, packet)) return true
         }
         return broadcastPacket(packet)
+    }
+
+    private fun dropOutboxForBlockedPeer(peerId: String) {
+        val retained = outboxItems.value.filterNot { it.targetPeerId == peerId }
+        if (retained.size == outboxItems.value.size) return
+        outboxItems.value = retained
+        chatStore.saveOutbox(retained)
+        logEvent("block", "removed pending sends to ${peerId.take(6)}")
     }
 
     private fun retryDelay(attempts: Int): Long {

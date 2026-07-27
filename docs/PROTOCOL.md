@@ -143,6 +143,7 @@ Public-channel files use `FileManifest` and `FileChunk` packets. Private-room fi
 - Packet ids are deduplicated with an LRU window.
 - Relays append their local peer id to `path`.
 - A device never displays packets it originated.
+- A device never displays, acknowledges, relays, or courier-stores packets from locally blocked peer ids.
 - A device never sends an ACK for an ACK.
 - Only signed and verified non-`Hello` packets are relayed.
 - If no transport accepts a relay packet, the router keeps it in a bounded encrypted courier queue for later peer contact.
@@ -168,3 +169,4 @@ Inbound packets pass through `PacketGuard` before display or relay:
 - Payload must stay below the configured size limit.
 - Timestamps must not be stale or too far in the future.
 - A single origin is rate-limited within a short rolling window.
+- Locally blocked origins are dropped after peer discovery metadata is refreshed, but before signature handling, display, ACK, relay, or courier queueing.

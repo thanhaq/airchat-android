@@ -23,6 +23,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Foreground background mesh mode so discovery and relay can stay alive after leaving the app.
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
+- Persistent peer blocklist with UI actions and `/block` / `/unblock` commands.
 - QR safety-number and private-room code cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
@@ -117,6 +118,9 @@ Composer commands:
 - `/unlock` clears the current room key from this device.
 - `/room` or `/lobby` leaves the current DM and returns to room mode.
 - `/msg peer text` or `/dm peer text` sends an encrypted direct message to a matching peer name or peer id prefix.
+- `/block peer` drops future packets from a peer and prevents direct sends to that peer.
+- `/block`, `/blocks`, or `/blocked` lists blocked peer ids.
+- `/unblock peer` removes a peer from the local blocklist.
 - `/me action` sends an action-style message to the active conversation.
 - `/who` lists visible peers locally.
 - `/help` shows the command list locally.
@@ -127,6 +131,8 @@ For peer verification:
 2. Compare the safety number or QR safety card out of band.
 3. Confirm the dialog only after the code matches.
 4. If the same peer id later advertises a different public key, AirChat marks it `Key changed` and blocks direct sends until you explicitly trust the new key.
+
+To block a peer, tap the block icon in its peer row or type `/block peer`. Blocked peers stay visible when discovered so they can be unblocked, but AirChat drops their packets before display, ACK, relay, or courier storage.
 
 For private-room verification, tap the `Private` room chip to show a QR room-code card. The QR contains only a room-code fingerprint, not the passphrase.
 

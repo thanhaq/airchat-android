@@ -37,6 +37,8 @@ data class ChatUiState(
     val courierQueueSize: Int,
     val courierEnabled: Boolean,
     val courierRetentionMinutes: Int,
+    val blockedPeerIds: Set<String>,
+    val blockedPeerCount: Int,
     val pinnedRoomCount: Int,
     val transportStatuses: List<TransportStatus>,
     val diagnosticEvents: List<DiagnosticEvent>
@@ -54,6 +56,7 @@ private data class RouterState(
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
     val courierPolicy: CourierPolicy,
+    val blockedPeerIds: Set<String>,
     val privateRooms: Map<String, PrivateRoomStatus>,
     val statuses: List<TransportStatus>,
     val diagnostics: List<DiagnosticEvent>
@@ -65,6 +68,14 @@ private data class RouterCoreState(
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
     val courierPolicy: CourierPolicy,
+    val blockedPeerIds: Set<String>,
+    val privateRooms: Map<String, PrivateRoomStatus>
+)
+
+private data class RouterMetaState(
+    val courierQueueSize: Int,
+    val courierPolicy: CourierPolicy,
+    val blockedPeerIds: Set<String>,
     val privateRooms: Map<String, PrivateRoomStatus>
 )
 
@@ -95,20 +106,33 @@ class ChatViewModel(
         CourierState(queueSize = queueSize, policy = policy)
     }
 
+    private val routerMetaState = combine(
+        courierState,
+        router.blockedPeerIds,
+        router.privateRoomStatuses
+    ) { courierState, blockedPeerIds, privateRooms ->
+        RouterMetaState(
+            courierQueueSize = courierState.queueSize,
+            courierPolicy = courierState.policy,
+            blockedPeerIds = blockedPeerIds,
+            privateRooms = privateRooms
+        )
+    }
+
     private val routerCoreState = combine(
         router.peers,
         router.messages,
         router.receivedFiles,
-        courierState,
-        router.privateRoomStatuses
-    ) { peers, messages, files, courierState, privateRooms ->
+        routerMetaState
+    ) { peers, messages, files, metaState ->
         RouterCoreState(
             peers = peers,
             messages = messages,
             files = files,
-            courierQueueSize = courierState.queueSize,
-            courierPolicy = courierState.policy,
-            privateRooms = privateRooms
+            courierQueueSize = metaState.courierQueueSize,
+            courierPolicy = metaState.courierPolicy,
+            blockedPeerIds = metaState.blockedPeerIds,
+            privateRooms = metaState.privateRooms
         )
     }
 
@@ -123,6 +147,7 @@ class ChatViewModel(
             files = coreState.files,
             courierQueueSize = coreState.courierQueueSize,
             courierPolicy = coreState.courierPolicy,
+            blockedPeerIds = coreState.blockedPeerIds,
             privateRooms = coreState.privateRooms,
             statuses = statuses,
             diagnostics = diagnostics
@@ -167,6 +192,8 @@ class ChatViewModel(
             courierQueueSize = routerState.courierQueueSize,
             courierEnabled = routerState.courierPolicy.enabled,
             courierRetentionMinutes = routerState.courierPolicy.retentionMinutes,
+            blockedPeerIds = routerState.blockedPeerIds,
+            blockedPeerCount = routerState.blockedPeerIds.size,
             pinnedRoomCount = rooms.count { it.isPinned },
             transportStatuses = routerState.statuses,
             diagnosticEvents = routerState.diagnostics
@@ -191,6 +218,8 @@ class ChatViewModel(
             courierQueueSize = 0,
             courierEnabled = CourierPolicy.Default.enabled,
             courierRetentionMinutes = CourierPolicy.Default.retentionMinutes,
+            blockedPeerIds = emptySet(),
+            blockedPeerCount = 0,
             pinnedRoomCount = 0,
             transportStatuses = emptyList(),
             diagnosticEvents = emptyList()
@@ -238,12 +267,15 @@ class ChatViewModel(
             is ChatCommand.JoinRoom -> joinRoom(command.channel)
             ChatCommand.LeaveDirect -> leaveDirect()
             is ChatCommand.DirectMessage -> sendCommandDirectMessage(command, input)
+            is ChatCommand.BlockPeer -> blockPeer(command.target)
+            is ChatCommand.UnblockPeer -> unblockPeer(command.target)
             is ChatCommand.Action -> sendText("* ${router.localName} ${command.body}", input)
             is ChatCommand.LockRoom -> lockCurrentRoom(command.passphrase)
             is ChatCommand.RotateRoom -> rotateCurrentRoom(command.passphrase)
             ChatCommand.UnlockRoom -> unlockCurrentRoom()
             ChatCommand.ShowRoomCode -> showRoomCode()
             ChatCommand.ShowPeers -> showPeerNotice()
+            ChatCommand.ShowBlockedPeers -> showBlockedPeerNotice()
             ChatCommand.ShowHelp -> router.appendLocalNotice(activeConversationChannel(), COMMAND_HELP)
             is ChatCommand.Unknown -> {
                 router.appendLocalNotice(activeConversationChannel(), "Unknown command: /${command.name}. Try /help.")
@@ -334,6 +366,10 @@ class ChatViewModel(
             router.appendLocalNotice(activeConversationChannel(), "No peer matches ${command.target}")
             return
         }
+        if (peer.isBlocked) {
+            router.appendLocalNotice(activeConversationChannel(), "Peer is blocked: ${peer.name} (${peer.id.take(6)})")
+            return
+        }
         directPeerId.value = peer.id
         viewModelScope.launch {
             val sent = router.sendDirectMessage(peerId = peer.id, body = command.body)
@@ -346,9 +382,48 @@ class ChatViewModel(
         val body = if (peers.isEmpty()) {
             "No peers nearby"
         } else {
-            peers.joinToString { peer -> "${peer.name} (${peer.id.take(6)})" }
+            peers.joinToString { peer ->
+                val suffix = if (peer.isBlocked) " blocked" else ""
+                "${peer.name} (${peer.id.take(6)})$suffix"
+            }
         }
         router.appendLocalNotice(activeConversationChannel(), body)
+    }
+
+    private fun showBlockedPeerNotice() {
+        val state = uiState.value
+        val peersById = state.peers.associateBy { it.id }
+        val body = if (state.blockedPeerIds.isEmpty()) {
+            "No blocked peers"
+        } else {
+            state.blockedPeerIds.sorted().joinToString { id ->
+                peersById[id]?.let { peer -> "${peer.name} (${id.take(6)})" } ?: id.take(12)
+            }
+        }
+        router.appendLocalNotice(activeConversationChannel(), body)
+    }
+
+    private fun blockPeer(target: String) {
+        val peer = resolvePeer(target)
+        if (peer == null) {
+            router.appendLocalNotice(activeConversationChannel(), "No peer matches $target")
+            return
+        }
+        if (router.blockPeer(peer.id)) {
+            if (directPeerId.value == peer.id) directPeerId.value = null
+            router.appendLocalNotice(activeConversationChannel(), "Blocked ${peer.name} (${peer.id.take(6)})")
+        }
+    }
+
+    private fun unblockPeer(target: String) {
+        val peerId = resolvePeer(target)?.id ?: resolveBlockedPeerId(target)
+        if (peerId == null) {
+            router.appendLocalNotice(activeConversationChannel(), "No blocked peer matches $target")
+            return
+        }
+        router.unblockPeer(peerId)
+        val name = uiState.value.peers.firstOrNull { it.id == peerId }?.name
+        router.appendLocalNotice(activeConversationChannel(), "Unblocked ${name ?: peerId.take(12)}")
     }
 
     private fun resolvePeer(query: String): Peer? {
@@ -358,6 +433,14 @@ class ChatViewModel(
                 peer.id.lowercase().startsWith(normalized) ||
                 peer.name.equals(query, ignoreCase = true) ||
                 peer.name.lowercase().startsWith(normalized)
+        }
+    }
+
+    private fun resolveBlockedPeerId(query: String): String? {
+        val normalized = query.removePrefix("@").lowercase()
+        return uiState.value.blockedPeerIds.firstOrNull { peerId ->
+            peerId.equals(normalized, ignoreCase = true) ||
+                peerId.lowercase().startsWith(normalized)
         }
     }
 
@@ -411,6 +494,10 @@ class ChatViewModel(
     }
 
     fun selectDirectPeer(peer: Peer) {
+        if (peer.isBlocked) {
+            router.appendLocalNotice(activeConversationChannel(), "Peer is blocked: ${peer.name} (${peer.id.take(6)})")
+            return
+        }
         directPeerId.value = peer.id
     }
 
@@ -432,6 +519,18 @@ class ChatViewModel(
 
     fun forgetPeer(peer: Peer) {
         router.forgetTrustedPeer(peer.id)
+    }
+
+    fun blockPeer(peer: Peer) {
+        if (router.blockPeer(peer.id)) {
+            if (directPeerId.value == peer.id) directPeerId.value = null
+            router.appendLocalNotice(activeConversationChannel(), "Blocked ${peer.name} (${peer.id.take(6)})")
+        }
+    }
+
+    fun unblockPeer(peer: Peer) {
+        router.unblockPeer(peer.id)
+        router.appendLocalNotice(activeConversationChannel(), "Unblocked ${peer.name} (${peer.id.take(6)})")
     }
 
     fun sendFile(fileName: String, mimeType: String, bytes: ByteArray) {
@@ -467,4 +566,4 @@ private fun loadRoomSet(rooms: Set<String>, includeLobby: Boolean = false): Set<
 }
 
 private const val COMMAND_HELP =
-    "Commands: /join room, /lock passphrase, /code, /rotate passphrase, /unlock, /room, /msg peer text, /me action, /who."
+    "Commands: /join room, /lock passphrase, /code, /rotate passphrase, /unlock, /room, /msg peer text, /block peer, /unblock peer, /me action, /who."

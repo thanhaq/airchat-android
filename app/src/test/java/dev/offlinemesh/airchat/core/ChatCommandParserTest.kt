@@ -34,6 +34,14 @@ class ChatCommandParserTest {
     }
 
     @Test
+    fun parsesPeerBlockCommands() {
+        assertEquals(ChatCommand.BlockPeer("alice"), ChatCommandParser.parse("/block @alice"))
+        assertEquals(ChatCommand.UnblockPeer("abc123"), ChatCommandParser.parse("/unblock abc123"))
+        assertEquals(ChatCommand.ShowBlockedPeers, ChatCommandParser.parse("/block"))
+        assertEquals(ChatCommand.ShowBlockedPeers, ChatCommandParser.parse("/blocked"))
+    }
+
+    @Test
     fun parsesActionWhoAndHelp() {
         assertEquals(ChatCommand.Action("checks the relay"), ChatCommandParser.parse("/me checks the relay"))
         assertEquals(ChatCommand.ShowPeers, ChatCommandParser.parse("/who"))
@@ -58,6 +66,7 @@ class ChatCommandParserTest {
         assertEquals(ChatCommand.Unknown("me"), ChatCommandParser.parse("/me"))
         assertEquals(ChatCommand.Unknown("lock"), ChatCommandParser.parse("/lock"))
         assertEquals(ChatCommand.Unknown("rotate"), ChatCommandParser.parse("/rotate"))
+        assertEquals(ChatCommand.Unknown("unblock"), ChatCommandParser.parse("/unblock"))
         assertEquals(ChatCommand.Unknown("nope"), ChatCommandParser.parse("/nope"))
     }
 

@@ -42,6 +42,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
 - QR safety cards and QR room-code cards make out-of-band comparison easier without transmitting passphrases or private keys.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
+- Blocked peer ids are encrypted at rest and excluded from Android backup; blocked packets are dropped before display, ACK, relay, or courier storage.
 - Diagnostics recent events are kept in memory and avoid message bodies, private-room passphrases, and file names.
 
 ## Known risks
@@ -60,6 +61,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.
 - Some Android 12+ devices may still use Android Keystore software backing or app-private software identity fallback when hardware-backed signing plus ECDH are unavailable.
 - Trust-on-first-use does not prove identity unless users compare safety numbers out of band.
+- Peer blocking is local moderation, not a network ban; other devices may still relay or display that peer's packets.
 - A malicious local peer can still attempt link-level flooding; current app-level rate limits are basic.
 - Android vendor differences can affect Wi-Fi Direct reliability.
 

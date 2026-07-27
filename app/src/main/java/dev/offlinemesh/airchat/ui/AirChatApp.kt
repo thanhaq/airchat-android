@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -165,6 +166,8 @@ fun AirChatApp(container: AppContainer) {
         onSelectDirect = viewModel::selectDirectPeer,
         onTrustPeer = { peer -> peerPendingTrust = peer },
         onForgetPeer = viewModel::forgetPeer,
+        onBlockPeer = viewModel::blockPeer,
+        onUnblockPeer = viewModel::unblockPeer,
         onClearDirect = viewModel::clearDirectPeer,
         backgroundMeshEnabled = backgroundMeshEnabled,
         onToggleBackgroundMesh = {
@@ -349,6 +352,8 @@ private fun AirChatScreen(
     onSelectDirect: (Peer) -> Unit,
     onTrustPeer: (Peer) -> Unit,
     onForgetPeer: (Peer) -> Unit,
+    onBlockPeer: (Peer) -> Unit,
+    onUnblockPeer: (Peer) -> Unit,
     onClearDirect: () -> Unit,
     backgroundMeshEnabled: Boolean,
     onToggleBackgroundMesh: () -> Unit,
@@ -463,7 +468,9 @@ private fun AirChatScreen(
                 onConnectPeer = onConnectPeer,
                 onSelectDirect = onSelectDirect,
                 onTrustPeer = onTrustPeer,
-                onForgetPeer = onForgetPeer
+                onForgetPeer = onForgetPeer,
+                onBlockPeer = onBlockPeer,
+                onUnblockPeer = onUnblockPeer
             )
             FileStrip(
                 files = state.receivedFiles,
@@ -661,7 +668,9 @@ private fun PeerStrip(
     onConnectPeer: (Peer) -> Unit,
     onSelectDirect: (Peer) -> Unit,
     onTrustPeer: (Peer) -> Unit,
-    onForgetPeer: (Peer) -> Unit
+    onForgetPeer: (Peer) -> Unit,
+    onBlockPeer: (Peer) -> Unit,
+    onUnblockPeer: (Peer) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -688,7 +697,9 @@ private fun PeerStrip(
                         onConnectPeer = onConnectPeer,
                         onSelectDirect = onSelectDirect,
                         onTrustPeer = onTrustPeer,
-                        onForgetPeer = onForgetPeer
+                        onForgetPeer = onForgetPeer,
+                        onBlockPeer = onBlockPeer,
+                        onUnblockPeer = onUnblockPeer
                     )
                 }
             }
@@ -703,7 +714,9 @@ private fun PeerRow(
     onConnectPeer: (Peer) -> Unit,
     onSelectDirect: (Peer) -> Unit,
     onTrustPeer: (Peer) -> Unit,
-    onForgetPeer: (Peer) -> Unit
+    onForgetPeer: (Peer) -> Unit,
+    onBlockPeer: (Peer) -> Unit,
+    onUnblockPeer: (Peer) -> Unit
 ) {
     ListItem(
         headlineContent = {
@@ -711,11 +724,12 @@ private fun PeerRow(
         },
         supportingContent = {
             val safety = peer.publicKey?.let { SafetyNumber.shortCode(localPublicKey, it) }
+            val peerStateLabel = if (peer.isBlocked) "Blocked" else trustLabel(peer.trustState)
             Text(
                 text = listOfNotNull(
                     peer.transport.name,
                     peer.connectionState.name,
-                    trustLabel(peer.trustState),
+                    peerStateLabel,
                     safety?.let { "Safety $it" }
                 ).joinToString(" / "),
                 maxLines = 2,
@@ -724,28 +738,37 @@ private fun PeerRow(
         },
         trailingContent = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                when (peer.trustState) {
-                    PeerTrustState.Trusted -> TextButton(onClick = { onForgetPeer(peer) }) {
-                        Text("Forget")
+                if (peer.isBlocked) {
+                    TextButton(onClick = { onUnblockPeer(peer) }) {
+                        Text("Unblock")
                     }
+                } else {
+                    when (peer.trustState) {
+                        PeerTrustState.Trusted -> TextButton(onClick = { onForgetPeer(peer) }) {
+                            Text("Forget")
+                        }
 
-                    PeerTrustState.KeyChanged -> TextButton(onClick = { onTrustPeer(peer) }, enabled = peer.publicKey != null) {
-                        Text("Trust")
-                    }
+                        PeerTrustState.KeyChanged -> TextButton(onClick = { onTrustPeer(peer) }, enabled = peer.publicKey != null) {
+                            Text("Trust")
+                        }
 
-                    PeerTrustState.Unknown -> TextButton(onClick = { onTrustPeer(peer) }, enabled = peer.publicKey != null) {
-                        Text("Trust")
+                        PeerTrustState.Unknown -> TextButton(onClick = { onTrustPeer(peer) }, enabled = peer.publicKey != null) {
+                            Text("Trust")
+                        }
                     }
-                }
-                TextButton(
-                    onClick = { onSelectDirect(peer) },
-                    enabled = peer.publicKey != null && peer.trustState != PeerTrustState.KeyChanged
-                ) {
-                    Text("DM")
-                }
-                if (peer.connectionState != PeerConnectionState.Connected) {
-                    Button(onClick = { onConnectPeer(peer) }) {
-                        Text("Link")
+                    TextButton(
+                        onClick = { onSelectDirect(peer) },
+                        enabled = peer.publicKey != null && peer.trustState != PeerTrustState.KeyChanged
+                    ) {
+                        Text("DM")
+                    }
+                    IconButton(onClick = { onBlockPeer(peer) }) {
+                        Icon(Icons.Default.Block, contentDescription = "Block peer")
+                    }
+                    if (peer.connectionState != PeerConnectionState.Connected) {
+                        Button(onClick = { onConnectPeer(peer) }) {
+                            Text("Link")
+                        }
                     }
                 }
             }
@@ -1084,6 +1107,7 @@ private fun diagnosticsSnapshot(
         roomCount = state.rooms.size,
         unreadRoomCount = state.rooms.count { it.unreadCount > 0 },
         pinnedRoomCount = state.pinnedRoomCount,
+        blockedPeerCount = state.blockedPeerCount,
         visibleMessageCount = state.messages.size,
         visibleFileCount = state.receivedFiles.size,
         courierQueueSize = state.courierQueueSize,

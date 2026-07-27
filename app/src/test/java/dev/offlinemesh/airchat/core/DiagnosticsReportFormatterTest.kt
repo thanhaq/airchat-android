@@ -29,6 +29,7 @@ class DiagnosticsReportFormatterTest {
                 roomCount = 3,
                 unreadRoomCount = 1,
                 pinnedRoomCount = 2,
+                blockedPeerCount = 1,
                 visibleMessageCount = 7,
                 visibleFileCount = 1,
                 courierQueueSize = 3,
@@ -51,6 +52,7 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("Rooms visible: 3"))
         assertTrue(report.contains("Rooms unread: 1"))
         assertTrue(report.contains("Rooms pinned: 2"))
+        assertTrue(report.contains("Peers blocked: 1"))
         assertTrue(report.contains("Courier queue: 3"))
         assertTrue(report.contains("Courier relay: on"))
         assertTrue(report.contains("Courier retention: 15m"))

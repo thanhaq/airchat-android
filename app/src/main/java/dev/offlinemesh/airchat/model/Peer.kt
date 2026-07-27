@@ -8,7 +8,8 @@ data class Peer(
     val address: String? = null,
     val lastSeenAt: Long = System.currentTimeMillis(),
     val connectionState: PeerConnectionState = PeerConnectionState.Discovered,
-    val trustState: PeerTrustState = PeerTrustState.Unknown
+    val trustState: PeerTrustState = PeerTrustState.Unknown,
+    val isBlocked: Boolean = false
 )
 
 enum class TransportKind {
