@@ -25,6 +25,8 @@ class DiagnosticsReportFormatterTest {
                 directPeerName = null,
                 backgroundMeshEnabled = true,
                 peerCount = 2,
+                roomCount = 3,
+                unreadRoomCount = 1,
                 visibleMessageCount = 7,
                 visibleFileCount = 1,
                 courierQueueSize = 3,
@@ -38,6 +40,8 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("Identity key: Android Keystore hardware-backed"))
         assertTrue(report.contains("Conversation: #lobby"))
         assertTrue(report.contains("Private room: on / code ABCD-1234-EF56 / strength strong"))
+        assertTrue(report.contains("Rooms visible: 3"))
+        assertTrue(report.contains("Rooms unread: 1"))
         assertTrue(report.contains("Courier queue: 3"))
         assertTrue(report.contains("- LAN: Ready (Advertising on local Wi-Fi)"))
     }

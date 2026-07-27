@@ -84,6 +84,7 @@ import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerConnectionState
 import dev.offlinemesh.airchat.model.PeerTrustState
 import dev.offlinemesh.airchat.model.ReceivedFile
+import dev.offlinemesh.airchat.model.RoomSummary
 import dev.offlinemesh.airchat.service.MeshForegroundService
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -135,6 +136,7 @@ fun AirChatApp(container: AppContainer) {
         state = state,
         onMessageChanged = viewModel::updateComposer,
         onChannelChanged = viewModel::updateChannel,
+        onSelectRoom = viewModel::selectRoom,
         onSend = viewModel::sendCurrentMessage,
         onRefresh = viewModel::retryDiscovery,
         onConnectPeer = viewModel::connectWifiPeer,
@@ -251,6 +253,7 @@ private fun AirChatScreen(
     state: ChatUiState,
     onMessageChanged: (String) -> Unit,
     onChannelChanged: (String) -> Unit,
+    onSelectRoom: (String) -> Unit,
     onSend: () -> Unit,
     onRefresh: () -> Unit,
     onConnectPeer: (Peer) -> Unit,
@@ -353,6 +356,10 @@ private fun AirChatScreen(
                     )
                 }
             }
+            RoomStrip(
+                rooms = state.rooms,
+                onSelectRoom = onSelectRoom
+            )
             PeerStrip(
                 peers = state.peers,
                 localPublicKey = state.localPublicKey,
@@ -367,6 +374,43 @@ private fun AirChatScreen(
                 onShareFile = onShareFile
             )
             MessageList(messages = state.messages, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RoomStrip(
+    rooms: List<RoomSummary>,
+    onSelectRoom: (String) -> Unit
+) {
+    if (rooms.isEmpty()) return
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 1.dp,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Rooms",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rooms.take(MAX_ROOM_CHIPS).forEach { room ->
+                    AssistChip(
+                        onClick = { onSelectRoom(room.channel) },
+                        label = { Text(roomChipLabel(room), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingIcon = if (room.isPrivate) {
+                            {
+                                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -700,6 +744,13 @@ private fun deliveryLabel(message: ChatMessage): String {
     return "$visibility / $base$hopLabel"
 }
 
+private fun roomChipLabel(room: RoomSummary): String {
+    val prefix = if (room.isSelected) "Now " else ""
+    val unread = if (room.unreadCount > 0) " ${room.unreadCount} new" else ""
+    val files = if (room.fileCount > 0) " ${room.fileCount} files" else ""
+    return "$prefix#${room.channel}$unread$files"
+}
+
 private fun trustLabel(state: PeerTrustState): String {
     return when (state) {
         PeerTrustState.Unknown -> "Untrusted"
@@ -792,6 +843,8 @@ private fun diagnosticsSnapshot(
         directPeerName = state.directPeer?.name,
         backgroundMeshEnabled = backgroundMeshEnabled,
         peerCount = state.peers.size,
+        roomCount = state.rooms.size,
+        unreadRoomCount = state.rooms.count { it.unreadCount > 0 },
         visibleMessageCount = state.messages.size,
         visibleFileCount = state.receivedFiles.size,
         courierQueueSize = state.courierQueueSize,
@@ -832,4 +885,5 @@ private fun shareDiagnostics(context: Context, report: String) {
 }
 
 private const val MAX_PICKED_FILE_BYTES = 10 * 1024 * 1024
+private const val MAX_ROOM_CHIPS = 8
 private const val SHARED_RECEIVED_DIR = "shared-received"

@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, trust, and key-change behavior.
 
 ## LAN field test
 
@@ -82,14 +82,24 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Slash command test
 
 1. Type `/join field_ops` and confirm the room changes locally.
-2. Type `/lock shared-field-passphrase` and confirm the room shows private mode with a code.
-3. Type `/code` and confirm the same code appears as a local notice.
-4. Type `/rotate new-shared-field-passphrase` and confirm the code changes.
-5. Type `/unlock` and confirm the room returns to public mode.
-6. Type `/who` and confirm the visible peer list appears as a local notice.
-7. Type `/msg <peer name or id prefix> command test` and confirm the peer receives it in DM mode.
-8. Type `/me checks relay` and confirm the action text is sent to the active room or DM.
-9. Type `/room` and confirm the composer returns to room mode.
+2. Confirm `field_ops` appears in the room switcher and `lobby` remains available.
+3. Type `/lock shared-field-passphrase` and confirm the room chip shows private mode with a code.
+4. Type `/code` and confirm the same code appears as a local notice.
+5. Type `/rotate new-shared-field-passphrase` and confirm the code changes.
+6. Type `/unlock` and confirm the room returns to public mode.
+7. Type `/who` and confirm the visible peer list appears as a local notice.
+8. Type `/msg <peer name or id prefix> command test` and confirm the peer receives it in DM mode.
+9. Type `/me checks relay` and confirm the action text is sent to the active room or DM.
+10. Type `/room` and confirm the composer returns to room mode.
+
+## Room switcher test
+
+1. On phone A, send a message in `lobby`.
+2. Type `/join ops` on both phones.
+3. Send a message from phone B in `lobby` while phone A is viewing `ops`.
+4. Confirm phone A shows an unread count on the `lobby` room chip.
+5. Tap the `lobby` room chip and confirm the unread count clears.
+6. Receive a file in `ops` and confirm the `ops` room chip shows the file count.
 
 ## File transfer test
 
@@ -114,7 +124,7 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible messages, visible files, courier queue size, and transport states.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, and transport states.
 3. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 
 ## Release sign-off

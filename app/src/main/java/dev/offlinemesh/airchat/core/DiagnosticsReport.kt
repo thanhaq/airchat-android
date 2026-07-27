@@ -18,6 +18,8 @@ data class DiagnosticsSnapshot(
     val directPeerName: String?,
     val backgroundMeshEnabled: Boolean,
     val peerCount: Int,
+    val roomCount: Int,
+    val unreadRoomCount: Int,
     val visibleMessageCount: Int,
     val visibleFileCount: Int,
     val courierQueueSize: Int,
@@ -39,6 +41,8 @@ object DiagnosticsReportFormatter {
         appendLine("Private room: ${privateRoomLabel(snapshot)}")
         appendLine("Background mesh: ${if (snapshot.backgroundMeshEnabled) "on" else "off"}")
         appendLine("Peers visible: ${snapshot.peerCount}")
+        appendLine("Rooms visible: ${snapshot.roomCount}")
+        appendLine("Rooms unread: ${snapshot.unreadRoomCount}")
         appendLine("Visible messages: ${snapshot.visibleMessageCount}")
         appendLine("Visible files: ${snapshot.visibleFileCount}")
         appendLine("Courier queue: ${snapshot.courierQueueSize}")

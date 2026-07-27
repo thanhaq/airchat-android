@@ -5,6 +5,7 @@ import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PrivateRoomStatus
 import dev.offlinemesh.airchat.model.ReceivedFile
+import dev.offlinemesh.airchat.model.RoomSummary
 import dev.offlinemesh.airchat.model.TransportStatus
 import dev.offlinemesh.airchat.transport.MeshRouter
 import androidx.lifecycle.viewModelScope
@@ -23,6 +24,7 @@ data class ChatUiState(
     val privateRoomEnabled: Boolean,
     val privateRoomCode: String?,
     val privateRoomStrength: String?,
+    val rooms: List<RoomSummary>,
     val directPeer: Peer?,
     val composer: String,
     val peers: List<Peer>,
@@ -61,6 +63,8 @@ class ChatViewModel(
     private val composer = MutableStateFlow("")
     private val channel = MutableStateFlow("lobby")
     private val directPeerId = MutableStateFlow<String?>(null)
+    private val knownRooms = MutableStateFlow(setOf("lobby"))
+    private val roomReadAt = MutableStateFlow(mapOf("lobby" to Long.MAX_VALUE))
 
     private val composerState = combine(composer, channel, directPeerId) { text, channelName, directId ->
         ComposerState(text = text, channel = channelName, directPeerId = directId)
@@ -93,12 +97,25 @@ class ChatViewModel(
         )
     }
 
-    val uiState: StateFlow<ChatUiState> = combine(composerState, routerState) { composerState, routerState ->
+    val uiState: StateFlow<ChatUiState> = combine(
+        composerState,
+        routerState,
+        knownRooms,
+        roomReadAt
+    ) { composerState, routerState, knownRooms, roomReadAt ->
         val sortedPeers = routerState.peers.sortedByDescending { it.lastSeenAt }
         val directPeer = sortedPeers.firstOrNull { it.id == composerState.directPeerId }
         val privateRoom = routerState.privateRooms[composerState.channel]
         val conversation = directPeer?.let { Conversation.Direct(it.id) }
             ?: Conversation.Room(composerState.channel)
+        val rooms = RoomDirectory.summarize(
+            messages = routerState.messages,
+            files = routerState.files,
+            privateRooms = routerState.privateRooms,
+            knownRooms = knownRooms,
+            selectedChannel = composerState.channel,
+            readAtByRoom = roomReadAt
+        )
         ChatUiState(
             localPeerId = router.localPeerId,
             nickname = router.localName,
@@ -107,6 +124,7 @@ class ChatViewModel(
             privateRoomEnabled = privateRoom != null,
             privateRoomCode = privateRoom?.verificationCode,
             privateRoomStrength = privateRoom?.strengthLabel,
+            rooms = rooms,
             directPeer = directPeer,
             composer = composerState.text,
             peers = sortedPeers,
@@ -126,6 +144,7 @@ class ChatViewModel(
             privateRoomEnabled = false,
             privateRoomCode = null,
             privateRoomStrength = null,
+            rooms = emptyList(),
             directPeer = null,
             composer = "",
             peers = emptyList(),
@@ -141,7 +160,19 @@ class ChatViewModel(
     }
 
     fun updateChannel(value: String) {
-        channel.value = ChatCommandParser.sanitizeChannel(value)
+        val sanitized = ChatCommandParser.sanitizeChannel(value)
+        channel.value = sanitized
+        directPeerId.value = null
+        rememberRoom(sanitized)
+        markRoomRead(sanitized)
+    }
+
+    fun selectRoom(room: String) {
+        val sanitized = ChatCommandParser.sanitizeChannel(room)
+        channel.value = sanitized
+        directPeerId.value = null
+        rememberRoom(sanitized)
+        markRoomRead(sanitized)
     }
 
     fun sendCurrentMessage() {
@@ -173,6 +204,7 @@ class ChatViewModel(
                 val sent = router.sendDirectMessage(peerId = directId, body = body)
                 if (!sent) composer.value = originalInput
             } else {
+                rememberRoom(channel.value)
                 router.sendChannelMessage(channel = channel.value, body = body)
             }
         }
@@ -181,6 +213,8 @@ class ChatViewModel(
     private fun joinRoom(room: String) {
         channel.value = room
         directPeerId.value = null
+        rememberRoom(room)
+        markRoomRead(room)
         router.appendLocalNotice(channel.value, "Joined #$room")
     }
 
@@ -275,6 +309,14 @@ class ChatViewModel(
 
     private fun activeConversationChannel(): String {
         return uiState.value.directPeer?.let { "dm:${it.id}" } ?: channel.value
+    }
+
+    private fun rememberRoom(room: String) {
+        knownRooms.value = knownRooms.value + room
+    }
+
+    private fun markRoomRead(room: String) {
+        roomReadAt.value = roomReadAt.value + (room to System.currentTimeMillis())
     }
 
     fun retryDiscovery() {
