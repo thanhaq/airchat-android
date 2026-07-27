@@ -20,16 +20,17 @@ Use this script for a short README GIF, release video, or social post.
 7. Show the room switcher with `lobby` and `field_ops`.
 8. Send a room message and show phone B receiving a locked placeholder.
 9. Type `/lock demo-passphrase` on phone B and show the same room code plus unlocked message.
-10. Type `/code` on one phone, then `/rotate demo-passphrase-2` and show the code change.
-11. Switch rooms and show an unread count clearing when the room chip is opened.
-12. Type `/who` and show the local peer notice.
-13. Open the peer row and show the safety number.
-14. Tap `Trust`, compare the safety number, and confirm.
-15. Type `/msg <peer> encrypted hello` to send a private message.
-16. Attach a small text file in DM mode.
-17. Show the receiver's file strip with save and share actions.
-18. Open diagnostics and show transport/key status plus recent events.
-19. Enable background mesh mode and show the persistent notification.
+10. Tap the private-room chip and show the QR room-code card.
+11. Type `/code` on one phone, then `/rotate demo-passphrase-2` and show the code change.
+12. Switch rooms and show an unread count clearing when the room chip is opened.
+13. Type `/who` and show the local peer notice.
+14. Open the peer row and show the safety number.
+15. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
+16. Type `/msg <peer> encrypted hello` to send a private message.
+17. Attach a small text file in DM mode.
+18. Show the receiver's file strip with save and share actions.
+19. Open diagnostics and show transport/key status plus recent events.
+20. Enable background mesh mode and show the persistent notification.
 
 ## Voiceover beats
 
@@ -38,7 +39,8 @@ Use this script for a short README GIF, release video, or social post.
 - "Wi-Fi Direct is included for phone-to-phone links."
 - "Packets are signed; private rooms, direct messages, and direct files are encrypted."
 - "A phone that joins late can unlock buffered private-room packets after entering the passphrase."
-- "Room codes let people confirm they typed the same passphrase."
+- "QR room-code cards let people confirm they typed the same passphrase."
+- "QR safety cards make peer-key checks easier without trusting a server."
 - "Room chips make multiple offline channels easy to follow."
 - "Delivery receipts come back through the same local mesh."
 - "Slash commands make it feel like a tiny local IRC network."

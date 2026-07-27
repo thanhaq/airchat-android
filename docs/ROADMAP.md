@@ -11,8 +11,8 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 
 ## Phase 2: Private messaging
 
-- Add QR safety-number verification.
-- Add private-room invite cards and QR room-code comparison.
+- Add camera scan-to-verify for QR safety cards.
+- Add private-room invite cards that carry room metadata without passphrases.
 - Add signed trust export/import for device migration.
 - Add Noise-style interactive sessions for online DMs.
 

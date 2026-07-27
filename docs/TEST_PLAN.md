@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, diagnostics event logging, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, QR verification payloads, diagnostics event logging, trust, and key-change behavior.
 
 ## LAN field test
 
@@ -59,11 +59,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Trust and DM test
 
 1. On phone A, tap `Trust` for phone B.
-2. Compare the safety number with phone B before confirming.
-3. Tap `DM` and send a private message.
-4. Confirm the message appears only in the direct conversation.
-5. Confirm the sender changes the DM from sent to received only after the recipient receives it.
-6. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
+2. Confirm the trust dialog shows both the safety number and a QR safety card.
+3. Compare the safety number or QR content with phone B before confirming.
+4. Tap `DM` and send a private message.
+5. Confirm the message appears only in the direct conversation.
+6. Confirm the sender changes the DM from sent to received only after the recipient receives it.
+7. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
 
 ## Private room test
 
@@ -73,11 +74,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 4. Send a room message from phone A and confirm phone B shows a locked message placeholder before it has the passphrase.
 5. On phone B, type `/lock shared-field-passphrase`.
 6. Confirm phone B shows the same room code, unlocks the buffered message, and marks it verified.
-7. Type `/code` on both phones and compare the codes out of band.
-8. Send a reply from phone B and confirm phone A receives it as verified.
-9. Send a file while both phones are in the locked room and confirm the receiver reassembles it.
-10. Type `/rotate new-shared-field-passphrase` on phone A and confirm the room code changes.
-11. Type `/unlock` on phone B, send another private-room message from phone A, and confirm phone B shows it as locked until the new passphrase is entered.
+7. Tap the private-room chip and confirm the QR room-code card appears.
+8. Type `/code` on both phones and compare the codes or QR room-code cards out of band.
+9. Send a reply from phone B and confirm phone A receives it as verified.
+10. Send a file while both phones are in the locked room and confirm the receiver reassembles it.
+11. Type `/rotate new-shared-field-passphrase` on phone A and confirm the room code changes.
+12. Type `/unlock` on phone B, send another private-room message from phone A, and confirm phone B shows it as locked until the new passphrase is entered.
 
 ## Slash command test
 
@@ -136,5 +138,5 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 - Record device model, Android version, and transport used.
 - Attach diagnostics text from both phones.
 - Attach the Markdown output from `scripts/compare-diagnostics.ps1`.
-- Capture at least one screenshot of LAN chat, private-room locked/unlocked state, Wi-Fi Direct peer list, DM verification, and file inbox.
+- Capture at least one screenshot of LAN chat, private-room locked/unlocked state, QR room-code card, Wi-Fi Direct peer list, QR safety card, DM verification, and file inbox.
 - Note failures with logcat output and whether battery saver was enabled.

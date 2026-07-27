@@ -23,6 +23,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Foreground background mesh mode so discovery and relay can stay alive after leaving the app.
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
+- QR safety-number and private-room code cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
 - Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay between transports.
@@ -109,10 +110,12 @@ Composer commands:
 
 For peer verification:
 
-1. Compare the safety number out of band.
-2. Tap `Trust` on that peer.
+1. Tap `Trust` on a peer with a public key.
+2. Compare the safety number or QR safety card out of band.
 3. Confirm the dialog only after the code matches.
 4. If the same peer id later advertises a different public key, AirChat marks it `Key changed` and blocks direct sends until you explicitly trust the new key.
+
+For private-room verification, tap the `Private` room chip to show a QR room-code card. The QR contains only a room-code fingerprint, not the passphrase.
 
 For files:
 
@@ -185,11 +188,11 @@ Next security milestones:
 
 - Add a Noise-style session handshake for direct messages.
 - Add stronger transport binding.
-- Add QR safety-number verification.
+- Add camera scan-to-verify for QR safety cards.
 
 ## Roadmap
 
-- QR safety-number verification.
+- Camera scan-to-verify for QR safety cards.
 - Multi-channel switching UI with pinned favorite rooms.
 - Courier per-peer quotas, relay receipts, and user-visible retention controls.
 - Wi-Fi Aware transport for supported Android devices.

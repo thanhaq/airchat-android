@@ -38,6 +38,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Courier relay stores verified transit packets for a short bounded window when no transport currently accepts the relay.
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
+- QR safety cards and QR room-code cards make out-of-band comparison easier without transmitting passphrases or private keys.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
 - Diagnostics recent events are kept in memory and avoid message bodies, private-room passphrases, and file names.
 
@@ -49,6 +50,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Private-room passphrases need enough entropy to resist offline guessing from captured packets.
 - Passphrase-strength labels are advisory and cannot prove that a phrase is safe against targeted guessing.
 - Room verification codes are not secrets; they are short key fingerprints for human comparison.
+- QR verification cards are not secrets; they encode fingerprints for comparison, not identity proof by themselves.
 - Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
 - Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
 - Encrypted courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
@@ -64,5 +66,5 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Courier per-peer quotas, relay receipts, and user controls.
 - Per-peer replay windows.
 - Transport quotas and stronger adaptive rate limiting.
-- QR safety number verification.
+- Camera scan-to-verify for QR safety cards.
 - Per-file retention controls and export auditing.

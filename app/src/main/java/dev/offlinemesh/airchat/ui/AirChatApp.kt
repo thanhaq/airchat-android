@@ -8,6 +8,8 @@ import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -67,6 +69,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size as GeometrySize
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,7 +82,10 @@ import dev.offlinemesh.airchat.core.ChatViewModel
 import dev.offlinemesh.airchat.core.DiagnosticsReportFormatter
 import dev.offlinemesh.airchat.core.DiagnosticsSnapshot
 import dev.offlinemesh.airchat.crypto.IdentityKeySecurity
+import dev.offlinemesh.airchat.crypto.QrCodeEncoder
+import dev.offlinemesh.airchat.crypto.QrCodeMatrix
 import dev.offlinemesh.airchat.crypto.SafetyNumber
+import dev.offlinemesh.airchat.crypto.VerificationPayload
 import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.DeliveryState
 import dev.offlinemesh.airchat.model.Peer
@@ -107,6 +115,7 @@ fun AirChatApp(container: AppContainer) {
     var confirmWipe by remember { mutableStateOf(false) }
     var filePendingSave by remember { mutableStateOf<ReceivedFile?>(null) }
     var peerPendingTrust by remember { mutableStateOf<Peer?>(null) }
+    var roomVerificationQr by remember { mutableStateOf<RoomVerificationQr?>(null) }
     var diagnosticsReport by remember { mutableStateOf<String?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -137,6 +146,11 @@ fun AirChatApp(container: AppContainer) {
         onMessageChanged = viewModel::updateComposer,
         onChannelChanged = viewModel::updateChannel,
         onSelectRoom = viewModel::selectRoom,
+        onShowRoomVerification = {
+            state.privateRoomCode?.let { code ->
+                roomVerificationQr = RoomVerificationQr(channel = state.channel, code = code)
+            }
+        },
         onSend = viewModel::sendCurrentMessage,
         onRefresh = viewModel::retryDiscovery,
         onConnectPeer = viewModel::connectWifiPeer,
@@ -197,6 +211,38 @@ fun AirChatApp(container: AppContainer) {
             }
         )
     }
+    roomVerificationQr?.let { room ->
+        val payload = remember(room) { VerificationPayload.room(room.channel, room.code) }
+        val matrix = remember(payload) { QrCodeEncoder.encodeText(payload) }
+        AlertDialog(
+            onDismissRequest = { roomVerificationQr = null },
+            confirmButton = {
+                TextButton(onClick = { roomVerificationQr = null }) {
+                    Text("Close")
+                }
+            },
+            title = { Text("Room verification") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Compare this code with people in #${room.channel} before trusting the room passphrase.")
+                    VerificationQrCanvas(
+                        matrix = matrix,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    Text(
+                        text = room.code,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "The QR contains only a room-code fingerprint, not the passphrase.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        )
+    }
     if (confirmWipe) {
         AlertDialog(
             onDismissRequest = { confirmWipe = false },
@@ -222,6 +268,8 @@ fun AirChatApp(container: AppContainer) {
     }
     peerPendingTrust?.let { peer ->
         val safetyNumber = peer.publicKey?.let { SafetyNumber.shortCode(state.localPublicKey, it) } ?: "Unavailable"
+        val safetyPayload = peer.publicKey?.let { VerificationPayload.safety(state.localPublicKey, it) }
+        val safetyQr = remember(safetyPayload) { safetyPayload?.let(QrCodeEncoder::encodeText) }
         AlertDialog(
             onDismissRequest = { peerPendingTrust = null },
             confirmButton = {
@@ -241,7 +289,25 @@ fun AirChatApp(container: AppContainer) {
             },
             title = { Text("Trust ${peer.name}?") },
             text = {
-                Text("Compare this safety number out of band before trusting the peer key: $safetyNumber")
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Compare this safety number out of band before trusting the peer key.")
+                    safetyQr?.let { matrix ->
+                        VerificationQrCanvas(
+                            matrix = matrix,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                    Text(
+                        text = safetyNumber,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "The QR contains only the safety fingerprint.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         )
     }
@@ -254,6 +320,7 @@ private fun AirChatScreen(
     onMessageChanged: (String) -> Unit,
     onChannelChanged: (String) -> Unit,
     onSelectRoom: (String) -> Unit,
+    onShowRoomVerification: () -> Unit,
     onSend: () -> Unit,
     onRefresh: () -> Unit,
     onConnectPeer: (Peer) -> Unit,
@@ -348,7 +415,7 @@ private fun AirChatScreen(
                 }
                 if (state.privateRoomEnabled && state.directPeer == null) {
                     AssistChip(
-                        onClick = {},
+                        onClick = onShowRoomVerification,
                         label = { Text("Private ${state.privateRoomCode ?: "#${state.channel}"}") },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -561,6 +628,41 @@ private fun PeerRow(
 }
 
 @Composable
+private fun VerificationQrCanvas(matrix: QrCodeMatrix, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = Color.White,
+        contentColor = Color.Black,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Canvas(
+            modifier = Modifier
+                .size(196.dp)
+                .padding(12.dp)
+        ) {
+            val quietModules = 4
+            val totalModules = matrix.size + quietModules * 2
+            val moduleSize = size.minDimension / totalModules
+            val qrSize = moduleSize * totalModules
+            val originX = (size.width - qrSize) / 2f + quietModules * moduleSize
+            val originY = (size.height - qrSize) / 2f + quietModules * moduleSize
+
+            for (y in 0 until matrix.size) {
+                for (x in 0 until matrix.size) {
+                    if (!matrix.isDark(x, y)) continue
+                    drawRect(
+                        color = Color.Black,
+                        topLeft = Offset(originX + x * moduleSize, originY + y * moduleSize),
+                        size = GeometrySize(moduleSize + 0.5f, moduleSize + 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MessageList(messages: List<ChatMessage>, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
@@ -763,6 +865,11 @@ private data class PickedFile(
     val name: String,
     val mimeType: String,
     val bytes: ByteArray
+)
+
+private data class RoomVerificationQr(
+    val channel: String,
+    val code: String
 )
 
 private suspend fun readPickedFile(context: Context, uri: Uri): PickedFile? = withContext(Dispatchers.IO) {
