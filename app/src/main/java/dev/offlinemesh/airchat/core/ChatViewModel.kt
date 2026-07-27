@@ -2,6 +2,7 @@ package dev.offlinemesh.airchat.core
 
 import androidx.lifecycle.ViewModel
 import dev.offlinemesh.airchat.model.ChatMessage
+import dev.offlinemesh.airchat.model.DiagnosticEvent
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PrivateRoomStatus
 import dev.offlinemesh.airchat.model.ReceivedFile
@@ -31,7 +32,8 @@ data class ChatUiState(
     val messages: List<ChatMessage>,
     val receivedFiles: List<ReceivedFile>,
     val courierQueueSize: Int,
-    val transportStatuses: List<TransportStatus>
+    val transportStatuses: List<TransportStatus>,
+    val diagnosticEvents: List<DiagnosticEvent>
 )
 
 private data class ComposerState(
@@ -46,7 +48,8 @@ private data class RouterState(
     val files: List<ReceivedFile>,
     val courierQueueSize: Int,
     val privateRooms: Map<String, PrivateRoomStatus>,
-    val statuses: List<TransportStatus>
+    val statuses: List<TransportStatus>,
+    val diagnostics: List<DiagnosticEvent>
 )
 
 private data class RouterCoreState(
@@ -86,14 +89,19 @@ class ChatViewModel(
         )
     }
 
-    private val routerState = combine(routerCoreState, router.transportStatuses) { coreState, statuses ->
+    private val routerState = combine(
+        routerCoreState,
+        router.transportStatuses,
+        router.diagnostics
+    ) { coreState, statuses, diagnostics ->
         RouterState(
             peers = coreState.peers,
             messages = coreState.messages,
             files = coreState.files,
             courierQueueSize = coreState.courierQueueSize,
             privateRooms = coreState.privateRooms,
-            statuses = statuses
+            statuses = statuses,
+            diagnostics = diagnostics
         )
     }
 
@@ -131,7 +139,8 @@ class ChatViewModel(
             messages = ConversationFilter.apply(routerState.messages, conversation),
             receivedFiles = ConversationFilter.applyFiles(routerState.files, conversation),
             courierQueueSize = routerState.courierQueueSize,
-            transportStatuses = routerState.statuses
+            transportStatuses = routerState.statuses,
+            diagnosticEvents = routerState.diagnostics
         )
     }.stateIn(
         scope = viewModelScope,
@@ -151,7 +160,8 @@ class ChatViewModel(
             messages = emptyList(),
             receivedFiles = emptyList(),
             courierQueueSize = 0,
-            transportStatuses = emptyList()
+            transportStatuses = emptyList(),
+            diagnosticEvents = emptyList()
         )
     )
 

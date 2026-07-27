@@ -59,6 +59,8 @@ class MeshRouterTest {
         assertEquals(1, router.messages.value.size)
         assertEquals(DeliveryState.Pending, router.messages.value.single().state)
         assertEquals(1, store.loadOutbox().size)
+        assertTrue(router.diagnostics.value.any { it.category == "outbox" })
+        assertTrue(router.diagnostics.value.none { it.detail.contains("hello offline") })
     }
 
     @Test
@@ -472,6 +474,7 @@ class MeshRouterTest {
 
         assertTrue(router.messages.value.isEmpty())
         assertTrue(transport.broadcastedPackets.isEmpty())
+        assertTrue(router.diagnostics.value.any { it.category == "guard" && it.detail.contains("invalid ttl") })
     }
 
     @Test

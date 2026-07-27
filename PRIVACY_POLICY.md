@@ -12,6 +12,7 @@ AirChat stores the minimum local data needed for mesh messaging:
 - Trusted peer public keys.
 - Received-file inbox metadata and encrypted file blobs.
 - App preferences needed for foreground background mesh mode.
+- A short in-memory diagnostics event log for field testing.
 
 Message history, outbox entries, courier relay packets, trust records, and received-file inbox entries are encrypted locally with Android Keystore AES-GCM keys. On Android 12+ new identity keys prefer Android Keystore and may be hardware-backed depending on the device. On Android 8-11, or when signing plus ECDH are not both available through Keystore, AirChat falls back to app-private software keys excluded from Android backup.
 
@@ -20,6 +21,8 @@ Message history, outbox entries, courier relay packets, trust records, and recei
 AirChat communicates with nearby peers through local Wi-Fi LAN discovery and Wi-Fi Direct. It does not send messages to an AirChat cloud service.
 
 Public room messages and public room file metadata are visible to nearby peers participating in the same local mesh. Direct messages and direct file packets are encrypted for the recipient public key, but nearby devices can still observe radio/network metadata such as timing, packet sizes, and local peer identifiers.
+
+Diagnostics reports are created only when the user opens and shares them. The recent event log is intended for debugging and includes metadata such as transport state changes, packet categories, queue events, and guard rejections. It does not intentionally include message bodies, private-room passphrases, or file names.
 
 ## Android Permissions
 

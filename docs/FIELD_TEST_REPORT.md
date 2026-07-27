@@ -47,6 +47,7 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Courier queue persists after restart |  |  |
 | Background mesh notification |  |  |
 | Diagnostics share sheet |  |  |
+| Diagnostics recent events |  |  |
 | Panic wipe |  |  |
 
 ## Diagnostics

@@ -28,7 +28,7 @@ Use this script for a short README GIF, release video, or social post.
 15. Type `/msg <peer> encrypted hello` to send a private message.
 16. Attach a small text file in DM mode.
 17. Show the receiver's file strip with save and share actions.
-18. Open diagnostics and show transport/key status.
+18. Open diagnostics and show transport/key status plus recent events.
 19. Enable background mesh mode and show the persistent notification.
 
 ## Voiceover beats
@@ -43,6 +43,7 @@ Use this script for a short README GIF, release video, or social post.
 - "Delivery receipts come back through the same local mesh."
 - "Slash commands make it feel like a tiny local IRC network."
 - "Diagnostics make device testing and issue reports easier."
+- "Recent events show what the mesh was doing without exposing chat text."
 - "The outbox keeps messages ready for the next peer contact."
 
 ## End frame

@@ -39,6 +39,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
+- Diagnostics recent events are kept in memory and avoid message bodies, private-room passphrases, and file names.
 
 ## Known risks
 
@@ -49,6 +50,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Passphrase-strength labels are advisory and cannot prove that a phrase is safe against targeted guessing.
 - Room verification codes are not secrets; they are short key fingerprints for human comparison.
 - Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
+- Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
 - Encrypted courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.
 - Some Android 12+ devices may still use Android Keystore software backing or app-private software identity fallback when hardware-backed signing plus ECDH are unavailable.

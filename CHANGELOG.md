@@ -25,7 +25,7 @@
 - Added Android backup/device-transfer exclusions for encrypted courier relay packets.
 - Added IRC-style slash commands: `/join`, `/lock`, `/code`, `/rotate`, `/unlock`, `/room`, `/msg`, `/dm`, `/me`, `/who`, and `/help`.
 - Added multi-room switcher UI with unread counts, file counts, and private-room markers.
-- Added in-app diagnostics report with courier queue size, share action, and field-test/GitHub issue details.
+- Added in-app diagnostics report with courier queue size, recent event log, share action, and field-test/GitHub issue details.
 - Added foreground background mesh service with notification controls for longer-lived local discovery and relay.
 - Added protocol, threat-model, and Android Wi-Fi documentation.
 - Added real-device test plan for LAN, Wi-Fi Direct, trust, file transfer, and background mesh checks.

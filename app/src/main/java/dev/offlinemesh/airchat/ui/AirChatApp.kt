@@ -848,7 +848,8 @@ private fun diagnosticsSnapshot(
         visibleMessageCount = state.messages.size,
         visibleFileCount = state.receivedFiles.size,
         courierQueueSize = state.courierQueueSize,
-        transportStatuses = state.transportStatuses
+        transportStatuses = state.transportStatuses,
+        diagnosticEvents = state.diagnosticEvents
     )
 }
 

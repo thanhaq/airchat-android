@@ -1,6 +1,7 @@
 package dev.offlinemesh.airchat.core
 
 import dev.offlinemesh.airchat.crypto.IdentityKeySecurity
+import dev.offlinemesh.airchat.model.DiagnosticEvent
 import dev.offlinemesh.airchat.model.TransportState
 import dev.offlinemesh.airchat.model.TransportStatus
 import org.junit.Assert.assertTrue
@@ -32,6 +33,10 @@ class DiagnosticsReportFormatterTest {
                 courierQueueSize = 3,
                 transportStatuses = listOf(
                     TransportStatus("LAN", TransportState.Ready, "Advertising on local Wi-Fi")
+                ),
+                diagnosticEvents = listOf(
+                    DiagnosticEvent(1_000L, "router", "started with 2 transports"),
+                    DiagnosticEvent(2_000L, "guard", "invalid ttl for Chat from abc123")
                 )
             )
         )
@@ -44,5 +49,8 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("Rooms unread: 1"))
         assertTrue(report.contains("Courier queue: 3"))
         assertTrue(report.contains("- LAN: Ready (Advertising on local Wi-Fi)"))
+        assertTrue(report.contains("Recent events:"))
+        assertTrue(report.contains("router: started with 2 transports"))
+        assertTrue(report.contains("guard: invalid ttl for Chat from abc123"))
     }
 }

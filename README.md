@@ -28,7 +28,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay between transports.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - Multi-room switcher with unread counts, file counts, and private-room markers.
-- In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, and share action for field testing.
+- In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, a privacy-preserving recent event log, and share action for field testing.
 - Compose UI with peer list, room strip, channel composer, DM mode, status chips, and verified/unverified message state.
 - Unit tests for packet serialization, direct-message crypto, private-room crypto, room summaries, conversation filtering, packet guard, file chunking, ACK receipts, courier relay, and dedup behavior.
 
@@ -133,7 +133,7 @@ For background mesh mode:
 For diagnostics:
 
 1. Tap the info icon in the top bar.
-2. Check identity-key backing, Android version, private-room code/strength, visible peer/room count, unread-room count, and transport states.
+2. Check identity-key backing, Android version, private-room code/strength, visible peer/room count, unread-room count, transport states, and recent diagnostic events.
 3. Use `Share` when attaching a field-test report or GitHub issue.
 
 ## Build from terminal

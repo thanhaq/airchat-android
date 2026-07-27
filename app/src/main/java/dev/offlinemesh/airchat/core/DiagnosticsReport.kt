@@ -1,7 +1,11 @@
 package dev.offlinemesh.airchat.core
 
 import dev.offlinemesh.airchat.crypto.IdentityKeySecurity
+import dev.offlinemesh.airchat.model.DiagnosticEvent
 import dev.offlinemesh.airchat.model.TransportStatus
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class DiagnosticsSnapshot(
     val appVersion: String,
@@ -23,7 +27,8 @@ data class DiagnosticsSnapshot(
     val visibleMessageCount: Int,
     val visibleFileCount: Int,
     val courierQueueSize: Int,
-    val transportStatuses: List<TransportStatus>
+    val transportStatuses: List<TransportStatus>,
+    val diagnosticEvents: List<DiagnosticEvent>
 )
 
 object DiagnosticsReportFormatter {
@@ -54,6 +59,14 @@ object DiagnosticsReportFormatter {
                 appendLine("- ${status.name}: ${status.state.name} (${status.detail})")
             }
         }
+        appendLine("Recent events:")
+        if (snapshot.diagnosticEvents.isEmpty()) {
+            appendLine("- none")
+        } else {
+            snapshot.diagnosticEvents.takeLast(MAX_EVENTS_IN_REPORT).forEach { event ->
+                appendLine("- ${eventTime(event.createdAt)} ${event.category}: ${event.detail}")
+            }
+        }
     }.trimEnd()
 
     fun identityKeyLabel(security: IdentityKeySecurity): String {
@@ -77,4 +90,9 @@ object DiagnosticsReportFormatter {
             snapshot.privateRoomStrength?.let { "strength $it" }
         ).joinToString(" / ")
     }
+
+    private fun eventTime(timestamp: Long): String =
+        SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(timestamp))
+
+    private const val MAX_EVENTS_IN_REPORT = 12
 }

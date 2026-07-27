@@ -9,6 +9,7 @@ import dev.offlinemesh.airchat.crypto.RoomKey
 import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.CourierPacket
 import dev.offlinemesh.airchat.model.DeliveryState
+import dev.offlinemesh.airchat.model.DiagnosticEvent
 import dev.offlinemesh.airchat.model.OutboxItem
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerTrustState
@@ -68,6 +69,7 @@ class MeshRouter(
     private val receivedFileLog = MutableStateFlow(receivedFileStore.loadReceivedFiles().takeLast(MAX_RECEIVED_FILES))
     private val trustedPeers = MutableStateFlow(peerTrustStore.loadTrustedPeers())
     private val statuses = MutableStateFlow<List<TransportStatus>>(emptyList())
+    private val diagnosticEvents = MutableStateFlow<List<DiagnosticEvent>>(emptyList())
     private val cryptoBox = CryptoBox()
     private val packetGuard = PacketGuard()
     private val fileAssemblies = mutableMapOf<String, PendingFileAssembly>()
@@ -89,16 +91,19 @@ class MeshRouter(
     val messages: StateFlow<List<ChatMessage>> = messageLog.asStateFlow()
     val receivedFiles: StateFlow<List<ReceivedFile>> = receivedFileLog.asStateFlow()
     val transportStatuses: StateFlow<List<TransportStatus>> = statuses.asStateFlow()
+    val diagnostics: StateFlow<List<DiagnosticEvent>> = diagnosticEvents.asStateFlow()
     val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
     val privateRoomStatuses: StateFlow<Map<String, PrivateRoomStatus>> = privateRoomStatusMap.asStateFlow()
 
     fun start() {
         if (started) return
         started = true
+        logEvent("router", "started with ${transports.size} transports")
         transports.forEach { transport ->
             routerJobs += scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 transport.peers.collect { peers ->
                     updatePeerIndex(peers)
+                    logEvent("peers", "${transport.name} sees ${peers.size} peers")
                     flushOutbox()
                     flushCourierQueue()
                 }
@@ -107,6 +112,7 @@ class MeshRouter(
                 transport.status.collect { status ->
                     val merged = statuses.value.filterNot { it.name == status.name } + status
                     statuses.value = merged.sortedBy { it.name }
+                    logEvent("transport", "${status.name} ${status.state.name}: ${status.detail.take(MAX_DIAGNOSTIC_DETAIL)}")
                 }
             }
             routerJobs += scope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -131,9 +137,11 @@ class MeshRouter(
             scope.launch { transport.stop() }
         }
         started = false
+        logEvent("router", "stopped")
     }
 
     fun refreshTransports() {
+        logEvent("transport", "manual refresh requested")
         transports.forEach { transport ->
             scope.launch {
                 transport.stop()
@@ -162,6 +170,8 @@ class MeshRouter(
         receivedFileStore.clear()
         trustedPeers.value = emptyMap()
         peerTrustStore.clear()
+        diagnosticEvents.value = emptyList()
+        logEvent("privacy", "local state wiped")
     }
 
     fun trustPeer(peerId: String): Boolean {
@@ -198,6 +208,7 @@ class MeshRouter(
         roomKeys.remove(normalized)?.bytes?.fill(0)
         roomKeys[normalized] = RoomCrypto.deriveRoomKey(normalized, trimmedPassphrase)
         publishPrivateRoomState()
+        logEvent("room", "private key set for #$normalized")
         scope.launch {
             unlockBufferedRoomPackets(normalized)
         }
@@ -208,6 +219,7 @@ class MeshRouter(
         val removed = roomKeys.remove(channel.trim())
         removed?.bytes?.fill(0)
         publishPrivateRoomState()
+        if (removed != null) logEvent("room", "private key cleared for #${channel.trim()}")
         return removed != null
     }
 
@@ -238,6 +250,10 @@ class MeshRouter(
         )
         deduper.remember(packet.id)
         val delivered = broadcastPacket(packet)
+        logEvent(
+            "message",
+            "room packet ${packet.type.name} in #$channel ${if (delivered) "broadcast" else "queued"}"
+        )
         appendMessage(
             packet = packet,
             state = if (delivered) DeliveryState.Sent else DeliveryState.Pending,
@@ -265,6 +281,7 @@ class MeshRouter(
         deduper.remember(packet.id)
         val delivered = sendTargetedOrBroadcast(peerId, packet)
         if (!delivered) queueOutbox(packet, targetPeerId = peerId)
+        logEvent("message", "direct text to ${peerId.take(6)} ${if (delivered) "sent" else "queued"}")
         appendMessage(
             packet = packet,
             state = if (delivered) DeliveryState.Sent else DeliveryState.Pending,
@@ -324,6 +341,7 @@ class MeshRouter(
             isLocal = true,
             bodyOverride = "Sent encrypted file: ${plan.manifest.fileName} (${formatBytes(plan.manifest.totalBytes)})"
         )
+        logEvent("file", "direct file to ${peerId.take(6)} ${if (delivered) "sent" else "queued"}")
         return delivered
     }
 
@@ -399,6 +417,7 @@ class MeshRouter(
                 "Sent file: ${plan.manifest.fileName} (${formatBytes(plan.manifest.totalBytes)})"
             }
         )
+        logEvent("file", "room file in #$channel ${if (delivered) "broadcast" else "queued"}")
         return delivered
     }
 
@@ -409,12 +428,22 @@ class MeshRouter(
 
     private suspend fun handlePacket(event: TransportEvent.PacketReceived) {
         val packet = event.packet
-        when (packetGuard.inspect(packet)) {
+        when (val decision = packetGuard.inspect(packet)) {
             PacketGuardDecision.Accepted -> Unit
-            PacketGuardDecision.RateLimited,
-            is PacketGuardDecision.Rejected -> return
+            PacketGuardDecision.RateLimited -> {
+                logEvent("guard", "rate-limited ${packet.type.name} from ${packet.originId.take(6)}")
+                return
+            }
+
+            is PacketGuardDecision.Rejected -> {
+                logEvent("guard", "${decision.reason} for ${packet.type.name} from ${packet.originId.take(6)}")
+                return
+            }
         }
-        if (!deduper.remember(packet.id)) return
+        if (!deduper.remember(packet.id)) {
+            logEvent("packet", "duplicate ${packet.type.name} ignored from ${packet.originId.take(6)}")
+            return
+        }
         if (packet.originId == localPeerId) return
 
         event.remotePeer?.let { peer ->
@@ -428,6 +457,11 @@ class MeshRouter(
                 signatureEncoded = it
             )
         } ?: false
+        logEvent(
+            "packet",
+            "received ${packet.type.name} on ${event.transportName} for ${channelLabel(packet.channel)} " +
+                if (verified) "verified" else "unverified"
+        )
 
         when (packet.type) {
             PacketType.Chat -> {
@@ -663,6 +697,7 @@ class MeshRouter(
         )
         deduper.remember(ack.id)
         sendTargetedOrBroadcast(packet.originId, ack)
+        logEvent("ack", "sent for ${packet.id.take(8)} to ${packet.originId.take(6)}")
     }
 
     private fun handleAckPacket(packet: MeshPacket, verified: Boolean) {
@@ -676,6 +711,7 @@ class MeshRouter(
         } ?: return
         if (message.state == DeliveryState.Pending || message.state == DeliveryState.Sent) {
             updateMessageState(message.id, DeliveryState.Received)
+            logEvent("ack", "received for ${ack.packetId.take(8)} from ${packet.originId.take(6)}")
         }
     }
 
@@ -772,6 +808,11 @@ class MeshRouter(
         receivedFileLog.value = updatedFiles
         receivedFileStore.saveReceivedFiles(updatedFiles)
         fileAssemblies.remove(transferId)
+        logEvent(
+            "file",
+            "received ${formatBytes(manifest.totalBytes)} on ${channelLabel(assembly.channel)} " +
+                if (assembly.verified) "verified" else "unverified"
+        )
         appendSyntheticMessage(
             id = "file:$transferId:complete",
             channel = assembly.channel,
@@ -853,6 +894,8 @@ class MeshRouter(
         )
         if (!broadcastPacket(relayed)) {
             queueCourierPacket(relayed)
+        } else {
+            logEvent("relay", "relayed ${packet.type.name} from ${packet.originId.take(6)} ttl ${relayed.ttl}")
         }
     }
 
@@ -878,11 +921,13 @@ class MeshRouter(
             courierPackets.remove(eldest)
         }
         persistCourierQueue()
+        logEvent("courier", "queued ${packet.type.name} from ${packet.originId.take(6)} ttl ${packet.ttl}")
     }
 
     private suspend fun flushCourierQueue() {
         pruneCourierQueue()
         if (courierPackets.isEmpty()) return
+        val retainedBeforeFlush = courierPackets.size
         val retained = linkedMapOf<String, CourierPacket>()
         courierPackets.values.forEach { item ->
             if (!broadcastPacket(item.packet)) {
@@ -892,6 +937,9 @@ class MeshRouter(
         courierPackets.clear()
         courierPackets.putAll(retained)
         persistCourierQueue()
+        if (retained.size != retainedBeforeFlush) {
+            logEvent("courier", "flushed ${retainedBeforeFlush - retained.size} packets, retained ${retained.size}")
+        }
     }
 
     private fun pruneCourierQueue() {
@@ -901,6 +949,7 @@ class MeshRouter(
         if (expired.isEmpty()) return
         expired.forEach(courierPackets::remove)
         persistCourierQueue()
+        logEvent("courier", "expired ${expired.size} packets")
     }
 
     private fun persistCourierQueue() {
@@ -941,6 +990,7 @@ class MeshRouter(
         val updated = (outboxItems.value.filterNot { it.id == item.id } + item).takeLast(MAX_OUTBOX_ITEMS)
         outboxItems.value = updated
         chatStore.saveOutbox(updated)
+        logEvent("outbox", "queued ${packet.type.name} for ${targetPeerId?.take(6) ?: "broadcast"}")
     }
 
     private suspend fun flushOutbox() {
@@ -960,14 +1010,17 @@ class MeshRouter(
             if (delivered) {
                 changed = true
                 updateMessageState(item.id, DeliveryState.Sent)
+                logEvent("outbox", "sent ${item.packet.type.name} after ${item.attempts} attempts")
             } else if (now - item.createdAt < OUTBOX_TTL_MS) {
                 changed = true
                 retained += item.copy(
                     attempts = item.attempts + 1,
                     nextAttemptAt = now + retryDelay(item.attempts + 1)
                 )
+                logEvent("outbox", "retry ${item.packet.type.name} attempt ${item.attempts + 1}")
             } else {
                 changed = true
+                logEvent("outbox", "expired ${item.packet.type.name} after ${item.attempts} attempts")
             }
         }
         if (changed) {
@@ -992,6 +1045,22 @@ class MeshRouter(
         }
         return seconds * 1_000L
     }
+
+    @Synchronized
+    private fun logEvent(category: String, detail: String) {
+        val sanitized = detail
+            .replace(Regex("\\s+"), " ")
+            .take(MAX_DIAGNOSTIC_DETAIL)
+        val event = DiagnosticEvent(
+            createdAt = System.currentTimeMillis(),
+            category = category,
+            detail = sanitized
+        )
+        diagnosticEvents.value = (diagnosticEvents.value + event).takeLast(MAX_DIAGNOSTIC_EVENTS)
+    }
+
+    private fun channelLabel(channel: String): String =
+        if (channel.startsWith(DIRECT_CHANNEL_PREFIX)) "direct" else "#$channel"
 
     private fun signedPacket(
         id: String = UUID.randomUUID().toString(),
@@ -1087,6 +1156,8 @@ class MeshRouter(
         const val MAX_RECEIVED_FILES = 50
         const val MAX_COURIER_PACKETS = 256
         const val MAX_LOCKED_ROOM_PACKETS = 128
+        const val MAX_DIAGNOSTIC_EVENTS = 80
+        const val MAX_DIAGNOSTIC_DETAIL = 120
         const val OUTBOX_TTL_MS = 24L * 60L * 60L * 1_000L
         const val COURIER_TTL_MS = 15L * 60L * 1_000L
         const val DIRECT_CHANNEL_PREFIX = "dm:"

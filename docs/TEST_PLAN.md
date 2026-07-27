@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, trust, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, diagnostics event logging, trust, and key-change behavior.
 
 ## LAN field test
 
@@ -124,8 +124,10 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, and transport states.
-3. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, transport states, and recent events.
+3. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
+4. Confirm recent events do not include message bodies, private-room passphrases, or file names.
+5. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 
 ## Release sign-off
 
