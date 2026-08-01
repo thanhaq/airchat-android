@@ -99,6 +99,8 @@ import dev.offlinemesh.airchat.core.ReceivedFilePreview
 import dev.offlinemesh.airchat.core.ReceivedFilePreviewKind
 import dev.offlinemesh.airchat.core.ReceivedFilePreviewer
 import dev.offlinemesh.airchat.core.SafetyShareFormatter
+import dev.offlinemesh.airchat.core.SignedTrustBackup
+import dev.offlinemesh.airchat.core.TrustBackupCodec
 import dev.offlinemesh.airchat.crypto.IdentityKeySecurity
 import dev.offlinemesh.airchat.crypto.QrCodeEncoder
 import dev.offlinemesh.airchat.crypto.QrCodeMatrix
@@ -177,6 +179,17 @@ fun AirChatApp(container: AppContainer) {
         },
         onSend = viewModel::sendCurrentMessage,
         onRefresh = viewModel::retryDiscovery,
+        onShareTrustBackup = {
+            coroutineScope.launch {
+                val backup = withContext(Dispatchers.IO) {
+                    TrustBackupCodec.export(
+                        identity = container.identityStore,
+                        trustedPeers = container.peerTrustStore.loadTrustedPeers().values
+                    )
+                }
+                shareTrustBackup(context, backup)
+            }
+        },
         onConnectPeer = viewModel::connectWifiPeer,
         onSelectDirect = viewModel::selectDirectPeer,
         onTrustPeer = { peer -> peerPendingTrust = peer },
@@ -405,6 +418,7 @@ private fun AirChatScreen(
     onToggleBackgroundMesh: () -> Unit,
     onPanicWipe: () -> Unit,
     onShowDiagnostics: () -> Unit,
+    onShareTrustBackup: () -> Unit,
     onPickFile: () -> Unit,
     onSaveFile: (ReceivedFile) -> Unit,
     onShareFile: (ReceivedFile) -> Unit
@@ -426,6 +440,9 @@ private fun AirChatScreen(
                 actions = {
                     IconButton(onClick = onShowDiagnostics) {
                         Icon(Icons.Default.Info, contentDescription = "Diagnostics")
+                    }
+                    IconButton(onClick = onShareTrustBackup) {
+                        Icon(Icons.Default.SaveAlt, contentDescription = "Share trust backup")
                     }
                     IconButton(onClick = onToggleBackgroundMesh) {
                         Icon(
@@ -1324,6 +1341,19 @@ private fun shareDiagnostics(context: Context, report: DiagnosticsDialogReport) 
     }
     context.startActivity(
         Intent.createChooser(shareIntent, "Share diagnostics")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
+}
+
+private fun shareTrustBackup(context: Context, backup: SignedTrustBackup) {
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "AirChat signed trust backup")
+        putExtra(Intent.EXTRA_TEXT, TrustBackupCodec.formatShareText(backup))
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(
+        Intent.createChooser(shareIntent, "Share trust backup")
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
 }

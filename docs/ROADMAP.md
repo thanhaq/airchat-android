@@ -12,7 +12,7 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 ## Phase 2: Private messaging
 
 - Add camera scan-to-verify for QR safety cards.
-- Add signed trust export/import for device migration.
+- Add signed trust import/merge UI for device migration.
 - Add Noise-style interactive sessions for online DMs.
 - Track BitChat parity gaps in [BITCHAT_PARITY.md](BITCHAT_PARITY.md).
 
