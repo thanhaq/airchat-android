@@ -3,6 +3,10 @@ description: Report a reproducible problem in AirChat.
 title: "[Bug]: "
 labels: ["bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing AirChat. For discovery, delivery, file, or relay bugs, attach diagnostics from both devices when possible. The workflow is documented in `docs/DIAGNOSTICS.md`.
   - type: textarea
     id: summary
     attributes:
@@ -24,18 +28,43 @@ body:
   - type: input
     id: android
     attributes:
-      label: Android version and device
-      placeholder: Pixel 8, Android 15
+      label: Android versions and devices
+      description: Include every phone or emulator involved.
+      placeholder: Device A: Pixel 8, Android 15. Device B: Galaxy S23, Android 14.
     validations:
       required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      description: Which path was being tested?
+      options:
+        - LAN on router or hotspot
+        - Wi-Fi Direct
+        - Both LAN and Wi-Fi Direct
+        - Unknown or not transport-related
+    validations:
+      required: true
+  - type: textarea
+    id: network
+    attributes:
+      label: Network and permissions
+      description: Note router/hotspot model, internet on/off, client isolation, Nearby/Location permission, battery saver, and background mesh state.
   - type: textarea
     id: diagnostics
     attributes:
       label: AirChat diagnostics
-      description: Tap the info icon in AirChat and paste the shared diagnostics text from each device.
+      description: Tap the info icon in AirChat and paste the shared diagnostics text from each device, including the Structured JSON block.
       render: text
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics_compare
+    attributes:
+      label: Diagnostics comparison
+      description: Paste or attach the output from scripts/compare-diagnostics.ps1, or summarize what docs/diagnostics-viewer.html highlighted.
   - type: textarea
     id: logs
     attributes:
       label: Logs or screenshots
-      description: Paste relevant logcat lines or attach screenshots.
+      description: Paste relevant `adb logcat -s AirChat` lines or attach screenshots.

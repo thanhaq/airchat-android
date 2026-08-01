@@ -1,0 +1,84 @@
+name: Field test report
+description: Share real-device LAN or Wi-Fi Direct release evidence.
+title: "[Field test]: "
+labels: ["field-test"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for release-candidate evidence from physical Android devices. The full checklist lives in `docs/FIELD_TEST_REPORT.md`; this issue should capture the parts reviewers need most.
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Commit, version, APK SHA-256, and whether this is debug-test or signed.
+      placeholder: a34ce48, v0.1.0 debug-test, SHA-256 ...
+    validations:
+      required: true
+  - type: textarea
+    id: devices
+    attributes:
+      label: Devices
+      description: List role, device model, Android version, battery saver state, and AirChat power mode.
+      placeholder: |
+        A: Pixel 8, Android 15, battery saver off, AirChat normal
+        B: Galaxy S23, Android 14, battery saver off, AirChat normal
+        C: optional courier device
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport tested
+      options:
+        - LAN only
+        - Wi-Fi Direct only
+        - LAN and Wi-Fi Direct
+    validations:
+      required: true
+  - type: textarea
+    id: network
+    attributes:
+      label: Network setup
+      description: Router/hotspot model, internet disabled yes/no, permissions granted, and any OEM battery restrictions.
+      placeholder: Offline hotspot, internet disabled, Nearby/Location granted, no client isolation.
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Test results
+      description: Summarize LAN chat, Wi-Fi Direct link, private room, trust, DM, files, courier, background alerts, and panic wipe.
+      placeholder: |
+        LAN discovery: pass
+        Wi-Fi Direct link: pass/fail with notes
+        Private room lock/unlock and code compare: pass
+        File transfer: pass
+        Courier relay: pass/fail with notes
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics from each device
+      description: Paste the shared diagnostics text from every device, including the Structured JSON block.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics_compare
+    attributes:
+      label: Diagnostics comparison
+      description: Attach or paste the Markdown output from scripts/compare-diagnostics.ps1, and note whether docs/diagnostics-viewer.html showed the same mismatches.
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or demo media
+      description: Attach LAN chat, private room code/QR invite, Wi-Fi Direct peer list, QR safety card, file inbox, diagnostics, or background notification evidence.
+  - type: textarea
+    id: failures
+    attributes:
+      label: Failures and logcat
+      description: Include timestamps, `adb logcat -s AirChat` snippets, Android permission state, and battery saver state for any failure.

@@ -40,6 +40,7 @@ This file records the public launch state so contributors can quickly see what i
 - Test Wi-Fi Direct discovery and link behavior on real devices.
 - Test private rooms, room verification codes, QR invite cards, encrypted DMs, file transfer, background mesh alerts, courier relay, and panic wipe.
 - Attach diagnostics from both devices and compare them with `scripts/compare-diagnostics.ps1`, `scripts/compare-diagnostics.sh`, or the offline visual viewer in `docs/diagnostics-viewer.html`.
+- File release-candidate evidence with the GitHub `Field test report` issue template.
 - Configure signed-release secrets in GitHub Actions:
   - `AIRCHAT_KEYSTORE_BASE64`
   - `AIRCHAT_KEYSTORE_PASSWORD`
