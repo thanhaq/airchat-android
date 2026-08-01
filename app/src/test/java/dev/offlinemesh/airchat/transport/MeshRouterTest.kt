@@ -15,6 +15,7 @@ import dev.offlinemesh.airchat.model.TransportKind
 import dev.offlinemesh.airchat.model.TrustedPeer
 import dev.offlinemesh.airchat.protocol.AckPayload
 import dev.offlinemesh.airchat.protocol.AckStatus
+import dev.offlinemesh.airchat.protocol.CourierReceiptPayload
 import dev.offlinemesh.airchat.protocol.DirectPayload
 import dev.offlinemesh.airchat.protocol.DirectEnvelope
 import dev.offlinemesh.airchat.protocol.DirectKind
@@ -425,6 +426,120 @@ class MeshRouterTest {
         assertEquals("courier-1", relayed.id)
         assertEquals(6, relayed.ttl)
         assertTrue(bob.peerId in relayed.path)
+    }
+
+    @Test
+    fun courierQueueEnforcesPerOriginQuota() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val store = InMemoryCourierStore()
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            courierStore = store,
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        router.updateCourierPolicy(
+            CourierPolicy(
+                enabled = true,
+                retentionMinutes = 15,
+                maxPacketsPerOrigin = 2
+            )
+        )
+        advanceUntilIdle()
+
+        listOf("quota-1", "quota-2", "quota-3").forEach { id ->
+            transport.emitPacket(
+                signedPacket(
+                    identity = alice,
+                    id = id,
+                    type = PacketType.Chat,
+                    channel = "lobby",
+                    payload = "carry $id"
+                ),
+                peerFor(alice)
+            )
+        }
+        advanceUntilIdle()
+
+        assertEquals(2, router.courierQueueSize.value)
+        assertEquals(listOf("quota-2", "quota-3"), store.loadCourierPackets().map { it.packet.id })
+        assertTrue(router.diagnostics.value.any { it.category == "courier" && it.detail.contains("quota evicted") })
+    }
+
+    @Test
+    fun queuesCourierPacketAndSendsSignedReceipt() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+
+        transport.emitPacket(
+            signedPacket(
+                identity = alice,
+                id = "receipt-courier",
+                type = PacketType.Chat,
+                channel = "lobby",
+                payload = "please carry"
+            ),
+            peerFor(alice)
+        )
+        advanceUntilIdle()
+
+        val receipt = transport.sentPackets.map { it.second }.single { it.type == PacketType.CourierReceipt }
+        val payload = MeshPacketCodec.decodePayload<CourierReceiptPayload>(receipt.payload)
+        assertEquals("receipt-courier", payload?.packetId)
+        assertEquals("lobby", receipt.channel)
+        assertEquals(1, receipt.ttl)
+        assertEquals(bob.peerId, receipt.originId)
+        assertTrue(router.diagnostics.value.any { it.category == "courier" && it.detail.contains("sent receipt") })
+    }
+
+    @Test
+    fun originLogsVerifiedCourierReceiptForLocalMessage() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        router.sendChannelMessage(channel = "lobby", body = "relay me")
+        advanceUntilIdle()
+        val localMessageId = router.messages.value.single().id
+        val receipt = signedPacket(
+            identity = bob,
+            id = "courier-receipt:$localMessageId:${bob.peerId}",
+            type = PacketType.CourierReceipt,
+            channel = "lobby",
+            payload = MeshPacketCodec.encodePayload(
+                CourierReceiptPayload(
+                    packetId = localMessageId,
+                    storedAt = System.currentTimeMillis(),
+                    expiresAt = System.currentTimeMillis() + 15L * 60L * 1_000L,
+                    remainingTtl = 6
+                )
+            )
+        )
+
+        transport.emitPacket(receipt, peerFor(bob))
+        advanceUntilIdle()
+
+        assertTrue(router.diagnostics.value.any { it.category == "courier" && it.detail.contains("receipt for") })
     }
 
     @Test

@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, public history sync, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
+- Router outbox, relay, courier queue quotas, ACK receipts, courier receipts, public history sync, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -55,9 +55,11 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 4. Confirm phone B diagnostics shows a non-zero courier queue if relay broadcast fails.
 5. Tap the `Courier` chip, set retention to 15 minutes, and confirm diagnostics reports courier relay on plus the selected retention.
 6. Restart AirChat on phone B and confirm diagnostics still shows the queued courier packet.
-7. Tap `Clear queue` and confirm diagnostics shows zero queued packets.
-8. Repeat with a fresh relay packet, bring phone C onto the local mesh within the selected retention window, and confirm phone B flushes the courier queue and phone C receives the relayed packet once.
-9. Disable courier relay, repeat a failed relay, and confirm phone B does not retain a courier packet.
+7. Confirm phone A diagnostics logs a courier receipt from phone B for the retained packet.
+8. Send enough relayed packets from one origin to confirm the per-origin quota evicts older courier entries before filling the whole queue.
+9. Tap `Clear queue` and confirm diagnostics shows zero queued packets.
+10. Repeat with a fresh relay packet, bring phone C onto the local mesh within the selected retention window, and confirm phone B flushes the courier queue and phone C receives the relayed packet once.
+11. Disable courier relay, repeat a failed relay, and confirm phone B does not retain a courier packet.
 
 ## Trust and DM test
 

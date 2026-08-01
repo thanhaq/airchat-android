@@ -27,7 +27,8 @@ enum class PacketType {
     FileChunk,
     Ack,
     HistoryRequest,
-    HistoryResponse
+    HistoryResponse,
+    CourierReceipt
 }
 
 @Serializable
@@ -114,4 +115,12 @@ data class HistoryRequestPayload(
 data class HistoryResponsePayload(
     val requestId: String,
     val packets: List<MeshPacket>
+)
+
+@Serializable
+data class CourierReceiptPayload(
+    val packetId: String,
+    val storedAt: Long,
+    val expiresAt: Long,
+    val remainingTtl: Int
 )

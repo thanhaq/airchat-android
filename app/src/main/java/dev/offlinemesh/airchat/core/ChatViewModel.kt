@@ -527,7 +527,8 @@ class ChatViewModel(
         router.updateCourierPolicy(
             CourierPolicy(
                 enabled = enabled,
-                retentionMinutes = current.courierRetentionMinutes
+                retentionMinutes = current.courierRetentionMinutes,
+                maxPacketsPerOrigin = router.courierPolicy.value.maxPacketsPerOrigin
             )
         )
     }
@@ -537,7 +538,8 @@ class ChatViewModel(
         router.updateCourierPolicy(
             CourierPolicy(
                 enabled = current.courierEnabled,
-                retentionMinutes = minutes
+                retentionMinutes = minutes,
+                maxPacketsPerOrigin = router.courierPolicy.value.maxPacketsPerOrigin
             )
         )
     }

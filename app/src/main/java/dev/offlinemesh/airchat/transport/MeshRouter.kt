@@ -21,6 +21,7 @@ import dev.offlinemesh.airchat.model.TransportStatus
 import dev.offlinemesh.airchat.model.TrustedPeer
 import dev.offlinemesh.airchat.protocol.AckPayload
 import dev.offlinemesh.airchat.protocol.AckStatus
+import dev.offlinemesh.airchat.protocol.CourierReceiptPayload
 import dev.offlinemesh.airchat.protocol.DirectEnvelope
 import dev.offlinemesh.airchat.protocol.DirectKind
 import dev.offlinemesh.airchat.protocol.DirectPayload
@@ -174,7 +175,8 @@ class MeshRouter(
         applyCourierPolicyToQueue()
         logEvent(
             "courier",
-            "policy ${if (sanitized.enabled) "enabled" else "disabled"} retention ${sanitized.retentionMinutes}m"
+            "policy ${if (sanitized.enabled) "enabled" else "disabled"} retention ${sanitized.retentionMinutes}m " +
+                "max/origin ${sanitized.maxPacketsPerOrigin}"
         )
     }
 
@@ -568,6 +570,7 @@ class MeshRouter(
             PacketType.Ack -> handleAckPacket(packet, verified)
             PacketType.HistoryRequest -> handleHistoryRequest(packet, verified)
             PacketType.HistoryResponse -> handleHistoryResponse(packet, verified)
+            PacketType.CourierReceipt -> handleCourierReceipt(packet, verified)
             PacketType.Hello -> Unit
         }
 
@@ -816,6 +819,21 @@ class MeshRouter(
     private fun isAckAuthorized(message: ChatMessage, ackOriginId: String): Boolean {
         if (!message.channel.startsWith(DIRECT_CHANNEL_PREFIX)) return true
         return message.channel.removePrefix(DIRECT_CHANNEL_PREFIX) == ackOriginId
+    }
+
+    private fun handleCourierReceipt(packet: MeshPacket, verified: Boolean) {
+        if (!verified) return
+        val receipt = MeshPacketCodec.decodePayload<CourierReceiptPayload>(packet.payload) ?: return
+        val message = messageLog.value.firstOrNull { candidate ->
+            candidate.id == receipt.packetId &&
+                candidate.isLocal &&
+                candidate.senderId == localPeerId &&
+                candidate.channel == packet.channel
+        } ?: return
+        logEvent(
+            "courier",
+            "receipt for ${message.id.take(8)} via ${packet.originId.take(6)} ttl ${receipt.remainingTtl}"
+        )
     }
 
     private suspend fun requestHistoryFromPeers(peers: List<Peer>) {
@@ -1144,12 +1162,13 @@ class MeshRouter(
             packet.type != PacketType.Hello &&
             packet.type != PacketType.HistoryRequest &&
             packet.type != PacketType.HistoryResponse &&
+            packet.type != PacketType.CourierReceipt &&
             packet.ttl > 0 &&
             packet.originId != localPeerId &&
             localPeerId !in packet.path
     }
 
-    private fun queueCourierPacket(packet: MeshPacket) {
+    private suspend fun queueCourierPacket(packet: MeshPacket) {
         pruneCourierQueue()
         val policy = courierPolicyState.value
         if (!policy.enabled) {
@@ -1164,17 +1183,77 @@ class MeshRouter(
         if (packet.ttl <= 0 || packet.originId == localPeerId) return
         val now = System.currentTimeMillis()
         courierPackets.remove(packet.id)
-        courierPackets[packet.id] = CourierPacket(
+        val queuedPacket = CourierPacket(
             packet = packet,
             expiresAt = now + policy.retentionMillis
         )
-        while (courierPackets.size > MAX_COURIER_PACKETS) {
-            val eldest = courierPackets.keys.firstOrNull() ?: break
-            courierPackets.remove(eldest)
+        courierPackets[packet.id] = queuedPacket
+        val evicted = enforceCourierLimits(policy)
+        if (evicted > 0) {
+            logEvent("courier", "quota evicted $evicted packets")
         }
+        if (packet.id !in courierPackets) return
         persistCourierQueue()
-        logEvent("courier", "queued ${packet.type.name} from ${packet.originId.take(6)} ttl ${packet.ttl}")
+        sendCourierReceiptFor(queuedPacket, storedAt = now)
+        logEvent(
+            "courier",
+            "queued ${packet.type.name} from ${packet.originId.take(6)} ttl ${packet.ttl} " +
+                "origin ${originCourierCount(packet.originId)}/${policy.maxPacketsPerOrigin}"
+        )
     }
+
+    private suspend fun sendCourierReceiptFor(item: CourierPacket, storedAt: Long) {
+        val original = item.packet
+        val receipt = signedPacket(
+            id = "courier-receipt:${original.id}:$localPeerId",
+            type = PacketType.CourierReceipt,
+            channel = original.channel,
+            payload = MeshPacketCodec.encodePayload(
+                CourierReceiptPayload(
+                    packetId = original.id,
+                    storedAt = storedAt,
+                    expiresAt = item.expiresAt,
+                    remainingTtl = original.ttl
+                )
+            ),
+            ttl = 1
+        )
+        deduper.remember(receipt.id)
+        sendTargetedOrBroadcast(original.originId, receipt)
+        logEvent("courier", "sent receipt for ${original.id.take(8)} to ${original.originId.take(6)}")
+    }
+
+    private fun enforceCourierLimits(policy: CourierPolicy): Int {
+        val beforeIds = courierPackets.keys.toSet()
+        val quotaLimited = retainNewestPerOrigin(
+            packets = courierPackets.values.toList(),
+            maxPacketsPerOrigin = policy.maxPacketsPerOrigin
+        )
+        val globallyLimited = quotaLimited.takeLast(MAX_COURIER_PACKETS)
+        courierPackets.clear()
+        globallyLimited.forEach { item -> courierPackets[item.packet.id] = item }
+        return (beforeIds - courierPackets.keys).size
+    }
+
+    private fun retainNewestPerOrigin(
+        packets: List<CourierPacket>,
+        maxPacketsPerOrigin: Int
+    ): List<CourierPacket> {
+        val counts = mutableMapOf<String, Int>()
+        val retained = mutableListOf<CourierPacket>()
+        packets.asReversed().forEach { item ->
+            val origin = item.packet.originId
+            val count = counts.getOrDefault(origin, 0)
+            if (count < maxPacketsPerOrigin) {
+                counts[origin] = count + 1
+                retained += item
+            }
+        }
+        return retained.asReversed()
+    }
+
+    private fun originCourierCount(originId: String): Int =
+        courierPackets.values.count { it.packet.originId == originId }
 
     private suspend fun flushCourierQueue() {
         pruneCourierQueue()
@@ -1242,7 +1321,14 @@ class MeshRouter(
                         item
                     }
                 }
-                .takeLast(MAX_COURIER_PACKETS)
+                .let { items ->
+                    val retained = retainNewestPerOrigin(
+                        packets = items,
+                        maxPacketsPerOrigin = policy.maxPacketsPerOrigin
+                    ).takeLast(MAX_COURIER_PACKETS)
+                    if (retained.size != items.size) changed = true
+                    retained
+                }
         }
         if (packets.size != stored.size || changed) {
             courierStore.saveCourierPackets(packets)
@@ -1272,11 +1358,10 @@ class MeshRouter(
                 item
             }
         }
-        if (changed) {
-            courierPackets.clear()
-            courierPackets.putAll(clamped)
-            persistCourierQueue()
-        }
+        courierPackets.clear()
+        courierPackets.putAll(clamped)
+        if (enforceCourierLimits(policy) > 0) changed = true
+        if (changed) persistCourierQueue()
         pruneCourierQueue()
     }
 

@@ -38,7 +38,7 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 - QR safety-number cards and private-room invite cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
-- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls.
+- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with per-origin quotas, relay receipts, and user-visible retention controls.
 - Public-room history sync that lets peers exchange recent signed public chat packets after reconnect without replaying private rooms, DMs, or files.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - Multi-room switcher with unread counts, file counts, private-room markers, persistent pinned favorites, and manual room reorder controls.

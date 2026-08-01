@@ -26,7 +26,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 | Internet fallback | Nostr relay path for global reach and location channels. | None by design in the current release; local Wi-Fi and Wi-Fi Direct stay serverless. |
 | Accounts | No accounts, phone numbers, or central servers for identity. | No accounts, phone numbers, or central servers. |
 | Relay | BLE multi-hop relay with TTL and controlled flooding. | TTL-limited relay over shared packet format for LAN and Wi-Fi Direct transports. |
-| Store and forward | Sender outbox, couriers, public history sync, and Nostr mailboxes. | Encrypted local outbox, bounded encrypted courier queue for verified relay packets, and recent public-room history sync. |
+| Store and forward | Sender outbox, couriers, public history sync, and Nostr mailboxes. | Encrypted local outbox, bounded encrypted courier queue with per-origin quotas and relay receipts, plus recent public-room history sync. |
 | Direct messages | Noise sessions on mesh; app-specific private envelopes over Nostr. | Ephemeral ECDH over P-256 plus AES-GCM direct envelopes. Noise-style sessions are planned. |
 | Public rooms | Mesh room plus geohash location channels over Nostr. | Named local rooms over Wi-Fi mesh, with unread counts, pinned rooms, and manual ordering. |
 | Private rooms | Private messages are the main encrypted path. | Passphrase-locked group rooms with verification codes, QR invite cards, encrypted text, and encrypted file packets. |
@@ -45,6 +45,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 - Private-room encryption is built around group workflows, not only one-to-one DMs.
 - File transfer is a first-class feature across public rooms, private rooms, and DMs.
 - Recent public-room history sync helps reconnecting peers catch up on signed public chat without replaying private-room, DM, or file payloads.
+- Courier relay now has per-origin fairness quotas and signed receipts so senders can distinguish relay retention from final delivery.
 - Diagnostics are designed for GitHub issues and field testing, with report comparison scripts for asymmetric discovery or delivery bugs.
 - The repository has launch artifacts that make trust review easier: threat model, protocol docs, release guide, verification guide, CI, generated manifests, checksums, and a field-test report template.
 
@@ -62,7 +63,7 @@ The next high-impact parity targets are:
 
 - Add Noise-style interactive sessions for online DMs.
 - Expand public-room history sync with compact set reconciliation and longer retention controls.
-- Add courier per-peer quotas, relay receipts, and richer expiry tuning.
+- Add richer courier expiry tuning, relay receipt surfacing, and per-peer quota controls.
 - Add Wi-Fi Aware for supported Android devices.
 - Explore optional BLE low-bandwidth discovery while keeping Wi-Fi as the high-throughput data path.
 - Add signed public APK release automation after field testing.

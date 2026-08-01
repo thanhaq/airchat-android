@@ -19,7 +19,7 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 ## Phase 3: Store and forward
 
 - Add relay receipts and expiry tuning.
-- Add courier limits per peer.
+- Add courier per-peer quota controls and richer receipt surfacing.
 - Add per-peer replay windows and adaptive transport quotas.
 
 ## Phase 4: More transports

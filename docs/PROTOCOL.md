@@ -31,6 +31,7 @@ AirChat uses one JSON line per packet over TCP sockets. The same packet format i
 - `Ack`: signed delivery receipt for a message packet.
 - `HistoryRequest`: signed request for recent public chat packets the requester has not seen.
 - `HistoryResponse`: signed bundle of recent public `Chat` packets for a `HistoryRequest`.
+- `CourierReceipt`: signed notice that a relay retained a packet in its bounded courier queue.
 
 ## Signing
 
@@ -129,6 +130,21 @@ When a peer accepts and verifies a public `Chat` packet, decrypts and verifies a
 
 Senders mark a local message as `received` after a valid ACK for that packet id. Direct-message ACKs are accepted only from the direct recipient named in the local message channel.
 
+## Courier receipts
+
+When a relay verifies a packet, fails to broadcast it onward, and retains it in the encrypted courier queue, it sends a signed `CourierReceipt` toward the original sender.
+
+```json
+{
+  "packetId": "uuid",
+  "storedAt": 1785160001000,
+  "expiresAt": 1785160901000,
+  "remainingTtl": 6
+}
+```
+
+A courier receipt is not a delivery ACK. It only means one relay accepted responsibility to retry the packet until the receipt's expiry window or until the user clears/disables courier relay. `CourierReceipt` packets are not relayed, acknowledged, or courier-stored.
+
 ## Public history sync
 
 When a transport reports a peer, AirChat may send a signed `HistoryRequest` packet directly to that peer. The request includes a bounded list of public packet ids already visible locally, an optional list of public channels, and a requested maximum packet count.
@@ -187,11 +203,13 @@ Public-channel files use `FileManifest` and `FileChunk` packets. Private-room fi
 Courier mode is opportunistic store-and-forward for packets that were already accepted by `PacketGuard` and verified against the origin signature.
 
 - Queue capacity is 256 packets.
+- Each origin is capped to a default of 32 retained packets so one noisy peer cannot monopolize the local queue.
 - Queue lifetime is user-configurable at 5, 15, or 60 minutes.
 - Users can disable courier relay or clear the queue manually from the app UI.
 - Entries are encrypted at rest with Android Keystore AES-GCM and excluded from Android backup/device transfer.
 - The queue is flushed when transports report peer changes or when the router starts.
 - Courier entries keep the already-decremented TTL and appended relay path, so retries do not create extra hops.
+- A relay sends a signed `CourierReceipt` to the packet origin when it stores a packet.
 - Public packets remain visible to local peers; private-room and direct packets remain encrypted but still expose metadata such as timing and packet size.
 
 ## Guard rails
