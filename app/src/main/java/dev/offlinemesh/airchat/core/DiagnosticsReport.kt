@@ -6,6 +6,13 @@ import dev.offlinemesh.airchat.model.TransportStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
 
 data class DiagnosticsSnapshot(
     val appVersion: String,
@@ -40,6 +47,7 @@ data class DiagnosticsSnapshot(
 
 object DiagnosticsReportFormatter {
     const val PROTOCOL_VERSION = "airchat-mesh-v1"
+    const val JSON_SCHEMA = "dev.offlinemesh.airchat.diagnostics.v1"
 
     fun format(snapshot: DiagnosticsSnapshot): String = buildString {
         appendLine("AirChat diagnostics")
@@ -83,6 +91,98 @@ object DiagnosticsReportFormatter {
         }
     }.trimEnd()
 
+    fun formatJson(snapshot: DiagnosticsSnapshot): String {
+        val root = buildJsonObject {
+            put("schema", JsonPrimitive(JSON_SCHEMA))
+            putObject("app") {
+                put("version", snapshot.appVersion)
+            }
+            putObject("protocol") {
+                put("version", snapshot.protocolVersion)
+            }
+            putObject("device") {
+                put("label", snapshot.device)
+                put("android", snapshot.androidVersion)
+            }
+            putObject("peer") {
+                put("id", snapshot.localPeerId)
+                put("nickname", snapshot.nickname)
+                put("label", "${snapshot.nickname} / ${snapshot.localPeerId}")
+                put("identityKey", identityKeyLabel(snapshot.identityKeySecurity))
+            }
+            putObject("conversation") {
+                put("mode", if (snapshot.directPeerName == null) "room" else "direct")
+                put("label", conversationLabel(snapshot))
+                put("channel", snapshot.channel)
+                putNullable("directPeerName", snapshot.directPeerName)
+            }
+            putObject("privateRoom") {
+                put("enabled", snapshot.privateRoomEnabled)
+                put("label", privateRoomLabel(snapshot))
+                putNullable("code", snapshot.privateRoomCode)
+                putNullable("strength", snapshot.privateRoomStrength)
+            }
+            putObject("backgroundMesh") {
+                put("enabled", snapshot.backgroundMeshEnabled)
+                put("label", if (snapshot.backgroundMeshEnabled) "on" else "off")
+            }
+            putObject("power") {
+                put("mode", snapshot.powerMode)
+                put("battery", snapshot.batteryState)
+            }
+            putObject("counts") {
+                put("peersVisible", snapshot.peerCount)
+                put("roomsVisible", snapshot.roomCount)
+                put("roomsUnread", snapshot.unreadRoomCount)
+                put("roomsPinned", snapshot.pinnedRoomCount)
+                put("peersBlocked", snapshot.blockedPeerCount)
+                put("visibleMessages", snapshot.visibleMessageCount)
+                put("visibleFiles", snapshot.visibleFileCount)
+            }
+            putObject("courier") {
+                put("queueSize", snapshot.courierQueueSize)
+                put("enabled", snapshot.courierEnabled)
+                put("relay", if (snapshot.courierEnabled) "on" else "off")
+                put("retentionMinutes", snapshot.courierRetentionMinutes)
+                put("maxPacketsPerOrigin", snapshot.courierMaxPacketsPerOrigin)
+                put("quota", "${snapshot.courierMaxPacketsPerOrigin} per origin")
+            }
+            put(
+                "transports",
+                buildJsonArray {
+                    snapshot.transportStatuses.sortedBy { it.name }.forEach { status ->
+                        add(
+                            buildJsonObject {
+                                put("name", status.name)
+                                put("state", status.state.name)
+                                put("detail", status.detail)
+                                put("label", "${status.state.name} (${status.detail})")
+                            }
+                        )
+                    }
+                }
+            )
+            put(
+                "recentEvents",
+                buildJsonArray {
+                    snapshot.diagnosticEvents.takeLast(MAX_EVENTS_IN_REPORT).forEach { event ->
+                        val time = eventTime(event.createdAt)
+                        add(
+                            buildJsonObject {
+                                put("createdAt", event.createdAt)
+                                put("time", time)
+                                put("category", event.category)
+                                put("detail", event.detail)
+                                put("label", "$time ${event.category}: ${event.detail}")
+                            }
+                        )
+                    }
+                }
+            )
+        }
+        return PrettyJson.encodeToString(JsonObject.serializer(), root)
+    }
+
     fun identityKeyLabel(security: IdentityKeySecurity): String {
         return when (security) {
             IdentityKeySecurity.AndroidKeyStoreHardwareBacked -> "Android Keystore hardware-backed"
@@ -107,6 +207,34 @@ object DiagnosticsReportFormatter {
 
     private fun eventTime(timestamp: Long): String =
         SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(timestamp))
+
+    private fun JsonObjectBuilder.put(key: String, value: String) {
+        put(key, JsonPrimitive(value))
+    }
+
+    private fun JsonObjectBuilder.put(key: String, value: Int) {
+        put(key, JsonPrimitive(value))
+    }
+
+    private fun JsonObjectBuilder.put(key: String, value: Long) {
+        put(key, JsonPrimitive(value))
+    }
+
+    private fun JsonObjectBuilder.put(key: String, value: Boolean) {
+        put(key, JsonPrimitive(value))
+    }
+
+    private fun JsonObjectBuilder.putNullable(key: String, value: String?) {
+        put(key, value?.let(::JsonPrimitive) ?: JsonNull)
+    }
+
+    private fun JsonObjectBuilder.putObject(key: String, block: JsonObjectBuilder.() -> Unit) {
+        put(key, buildJsonObject(block))
+    }
+
+    private val PrettyJson = Json {
+        prettyPrint = true
+    }
 
     private const val MAX_EVENTS_IN_REPORT = 12
 }

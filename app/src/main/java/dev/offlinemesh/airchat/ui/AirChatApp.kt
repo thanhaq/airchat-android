@@ -127,7 +127,7 @@ fun AirChatApp(container: AppContainer) {
     var peerPendingTrust by remember { mutableStateOf<Peer?>(null) }
     var roomVerificationQr by remember { mutableStateOf<RoomVerificationQr?>(null) }
     var courierSettingsOpen by remember { mutableStateOf(false) }
-    var diagnosticsReport by remember { mutableStateOf<String?>(null) }
+    var diagnosticsReport by remember { mutableStateOf<DiagnosticsDialogReport?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -188,14 +188,16 @@ fun AirChatApp(container: AppContainer) {
         onPanicWipe = { confirmWipe = true },
         onShowDiagnostics = {
             val powerStatus = container.refreshPowerPolicy()
-            diagnosticsReport = DiagnosticsReportFormatter.format(
-                diagnosticsSnapshot(
-                    context = context,
-                    state = state,
-                    backgroundMeshEnabled = backgroundMeshEnabled,
-                    backgroundPowerStatus = powerStatus,
-                    identityKeySecurity = container.identityStore.identityKeySecurity
-                )
+            val snapshot = diagnosticsSnapshot(
+                context = context,
+                state = state,
+                backgroundMeshEnabled = backgroundMeshEnabled,
+                backgroundPowerStatus = powerStatus,
+                identityKeySecurity = container.identityStore.identityKeySecurity
+            )
+            diagnosticsReport = DiagnosticsDialogReport(
+                text = DiagnosticsReportFormatter.format(snapshot),
+                json = DiagnosticsReportFormatter.formatJson(snapshot)
             )
         },
         onPickFile = { filePicker.launch("*/*") },
@@ -225,7 +227,7 @@ fun AirChatApp(container: AppContainer) {
             title = { Text("Diagnostics") },
             text = {
                 Text(
-                    text = report,
+                    text = report.text,
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -1096,6 +1098,21 @@ private data class RoomVerificationQr(
     val code: String
 )
 
+private data class DiagnosticsDialogReport(
+    val text: String,
+    val json: String
+) {
+    val shareText: String
+        get() = buildString {
+            appendLine(text)
+            appendLine()
+            appendLine("Structured JSON:")
+            appendLine("```json")
+            appendLine(json)
+            appendLine("```")
+        }.trimEnd()
+}
+
 private suspend fun readPickedFile(context: Context, uri: Uri): PickedFile? = withContext(Dispatchers.IO) {
     val resolver = context.contentResolver
     val name = runCatching {
@@ -1211,11 +1228,11 @@ private fun appVersion(context: Context): String {
     return "${packageInfo.versionName ?: "debug"} ($versionCode)"
 }
 
-private fun shareDiagnostics(context: Context, report: String) {
+private fun shareDiagnostics(context: Context, report: DiagnosticsDialogReport) {
     val shareIntent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, "AirChat diagnostics")
-        putExtra(Intent.EXTRA_TEXT, report)
+        putExtra(Intent.EXTRA_TEXT, report.shareText)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     context.startActivity(

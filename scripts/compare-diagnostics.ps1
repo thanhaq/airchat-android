@@ -18,6 +18,164 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+function Get-JsonPathValue {
+    param(
+        [AllowNull()]
+        [object]$Object,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Path
+    )
+
+    $current = $Object
+    foreach ($part in $Path) {
+        if ($null -eq $current) {
+            return $null
+        }
+
+        $property = $current.PSObject.Properties[$part]
+        if ($null -eq $property) {
+            return $null
+        }
+
+        $current = $property.Value
+    }
+
+    return $current
+}
+
+function Get-JsonString {
+    param(
+        [AllowNull()]
+        [object]$Object,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Path
+    )
+
+    $value = Get-JsonPathValue $Object $Path
+    if ($null -eq $value -or [string]$value -eq "") {
+        return $null
+    }
+    return [string]$value
+}
+
+function Add-ReportField {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Specialized.OrderedDictionary]$Fields,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+
+        [AllowNull()]
+        [string]$Value
+    )
+
+    $Fields[$Key] = if ($null -eq $Value -or $Value -eq "") { "(missing)" } else { $Value }
+}
+
+function Read-StructuredDiagnosticsObject {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Raw
+    )
+
+    $trimmed = $Raw.TrimStart()
+    if ($trimmed.StartsWith("{")) {
+        return $trimmed | ConvertFrom-Json
+    }
+
+    if ($Raw -match '(?s)```json\s*(.*?)\s*```') {
+        return $Matches[1] | ConvertFrom-Json
+    }
+
+    return $null
+}
+
+function ConvertFrom-StructuredDiagnosticsReport {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Structured,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $schema = Get-JsonString $Structured @("schema")
+    if ($schema -ne "dev.offlinemesh.airchat.diagnostics.v1") {
+        Write-Error "Unsupported structured diagnostics schema in ${Path}: $schema"
+    }
+
+    $fields = [ordered]@{}
+    Add-ReportField $fields "App" (Get-JsonString $Structured @("app", "version"))
+    Add-ReportField $fields "Protocol" (Get-JsonString $Structured @("protocol", "version"))
+    Add-ReportField $fields "Device" (Get-JsonString $Structured @("device", "label"))
+    Add-ReportField $fields "Android" (Get-JsonString $Structured @("device", "android"))
+    Add-ReportField $fields "Peer" (Get-JsonString $Structured @("peer", "label"))
+    Add-ReportField $fields "Identity key" (Get-JsonString $Structured @("peer", "identityKey"))
+    Add-ReportField $fields "Conversation" (Get-JsonString $Structured @("conversation", "label"))
+    Add-ReportField $fields "Private room" (Get-JsonString $Structured @("privateRoom", "label"))
+    Add-ReportField $fields "Background mesh" (Get-JsonString $Structured @("backgroundMesh", "label"))
+    Add-ReportField $fields "Power mode" (Get-JsonString $Structured @("power", "mode"))
+    Add-ReportField $fields "Battery" (Get-JsonString $Structured @("power", "battery"))
+    Add-ReportField $fields "Peers visible" (Get-JsonString $Structured @("counts", "peersVisible"))
+    Add-ReportField $fields "Rooms visible" (Get-JsonString $Structured @("counts", "roomsVisible"))
+    Add-ReportField $fields "Rooms unread" (Get-JsonString $Structured @("counts", "roomsUnread"))
+    Add-ReportField $fields "Rooms pinned" (Get-JsonString $Structured @("counts", "roomsPinned"))
+    Add-ReportField $fields "Peers blocked" (Get-JsonString $Structured @("counts", "peersBlocked"))
+    Add-ReportField $fields "Visible messages" (Get-JsonString $Structured @("counts", "visibleMessages"))
+    Add-ReportField $fields "Visible files" (Get-JsonString $Structured @("counts", "visibleFiles"))
+    Add-ReportField $fields "Courier queue" (Get-JsonString $Structured @("courier", "queueSize"))
+    Add-ReportField $fields "Courier relay" (Get-JsonString $Structured @("courier", "relay"))
+
+    $retentionMinutes = Get-JsonString $Structured @("courier", "retentionMinutes")
+    $retentionLabel = if ($retentionMinutes) { "$retentionMinutes" + "m" } else { $null }
+    Add-ReportField $fields "Courier retention" $retentionLabel
+    Add-ReportField $fields "Courier quota" (Get-JsonString $Structured @("courier", "quota"))
+
+    $transports = [ordered]@{}
+    $transportItems = Get-JsonPathValue $Structured @("transports")
+    foreach ($transport in @($transportItems | Where-Object { $null -ne $_ })) {
+        $name = Get-JsonString $transport @("name")
+        if (-not $name) {
+            continue
+        }
+        $label = Get-JsonString $transport @("label")
+        if (-not $label) {
+            $state = Get-JsonString $transport @("state")
+            $detail = Get-JsonString $transport @("detail")
+            $label = if ($state -and $detail) { "$state ($detail)" } else { $state }
+        }
+        $transports[$name] = if ($label) { $label } else { "(missing)" }
+    }
+
+    $events = New-Object System.Collections.Generic.List[string]
+    $eventItems = Get-JsonPathValue $Structured @("recentEvents")
+    foreach ($event in @($eventItems | Where-Object { $null -ne $_ })) {
+        $label = Get-JsonString $event @("label")
+        if (-not $label) {
+            $time = Get-JsonString $event @("time")
+            $category = Get-JsonString $event @("category")
+            $detail = Get-JsonString $event @("detail")
+            if ($category -and $detail) {
+                $prefix = if ($time) { "$time " } else { "" }
+                $label = "$prefix$($category): $detail"
+            }
+        }
+        if ($label) {
+            [void]$events.Add($label)
+        }
+    }
+
+    [pscustomobject]@{
+        Path = $Path
+        Fields = $fields
+        Transports = $transports
+        Events = $events.ToArray()
+    }
+}
+
 function Read-DiagnosticsReport {
     param(
         [Parameter(Mandatory = $true)]
@@ -29,7 +187,13 @@ function Read-DiagnosticsReport {
     }
 
     $resolvedPath = (Resolve-Path -LiteralPath $Path).Path
-    $lines = Get-Content -LiteralPath $resolvedPath
+    $raw = Get-Content -LiteralPath $resolvedPath -Raw
+    $structured = Read-StructuredDiagnosticsObject $raw
+    if ($null -ne $structured) {
+        return ConvertFrom-StructuredDiagnosticsReport $structured $resolvedPath
+    }
+
+    $lines = $raw -split "\r?\n"
     $fields = [ordered]@{}
     $transports = [ordered]@{}
     $events = New-Object System.Collections.Generic.List[string]

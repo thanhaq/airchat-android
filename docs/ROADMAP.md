@@ -34,5 +34,5 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 - Add screenshots and demo videos.
 - Add inline preview for common received file types.
 - Add reproducible release verification workflow.
-- Add structured diagnostics import to compare two device reports side by side.
+- Add a visual diagnostics diff viewer for shared field-test reports.
 - Add localization.

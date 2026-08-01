@@ -150,14 +150,15 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 3. Confirm the report includes pinned room count after pinning a room.
 4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
-6. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
+6. Tap `Share` and confirm the Android share sheet opens with readable diagnostics plus a `Structured JSON` block.
 7. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
 8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
+9. Save the fenced JSON block from each report as `.json` files and confirm the same compare command accepts the JSON-only files.
 
 ## Release sign-off
 
 - Record device model, Android version, and transport used.
-- Attach diagnostics text from both phones.
+- Attach diagnostics text and structured JSON from both phones.
 - Attach the Markdown output from `scripts/compare-diagnostics.ps1`.
 - Capture at least one screenshot of LAN chat, private-room locked/unlocked state, QR invite card, Wi-Fi Direct peer list, QR safety card, DM verification, and file inbox.
 - Note failures with logcat output and whether battery saver was enabled.

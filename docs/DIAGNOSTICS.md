@@ -1,13 +1,13 @@
 # Diagnostics Workflow
 
-AirChat diagnostics are designed for field tests where two or three physical Android devices are on the same offline Wi-Fi or Wi-Fi Direct mesh. The report captures app version, protocol version, Android version, peer identity, private-room state, background mesh state, power mode, battery state, transport states, room counts, pinned-room count, blocked-peer count, courier queue size, courier relay mode, courier retention, courier per-origin quota, and a short recent event timeline.
+AirChat diagnostics are designed for field tests where two or three physical Android devices are on the same offline Wi-Fi or Wi-Fi Direct mesh. The report captures app version, protocol version, Android version, peer identity, private-room state, background mesh state, power mode, battery state, transport states, room counts, pinned-room count, blocked-peer count, courier queue size, courier relay mode, courier retention, courier per-origin quota, and a short recent event timeline. Shared diagnostics include a readable text report plus a fenced JSON block using schema `dev.offlinemesh.airchat.diagnostics.v1`.
 
 ## Capture Reports
 
 1. Install the same APK on every test device.
 2. Reproduce the issue or demo flow.
 3. Tap the info icon in AirChat.
-4. Tap `Share` and save the plain-text diagnostics from each device.
+4. Tap `Share` and save the diagnostics from each device. Keep the `Structured JSON` block intact when filing an issue or running tooling.
 5. Name the files by role, for example `device-a.txt`, `device-b.txt`, and `courier-c.txt`.
 
 ## Compare Two Devices
@@ -30,7 +30,7 @@ On macOS or Linux with PowerShell installed:
 bash ./scripts/compare-diagnostics.sh ./field-tests/device-a.txt ./field-tests/device-b.txt -FirstLabel PixelA -SecondLabel PixelB -OutFile ./field-tests/diagnostics-compare.md
 ```
 
-The generated Markdown report includes:
+The compare scripts accept the original text report, the shared report with embedded JSON, or a JSON-only diagnostics file. The generated Markdown report includes:
 
 - App, protocol, Android, identity-key, conversation, room, unread, blocked-peer, file, power, courier counters, courier quota, and courier policy side by side.
 - Pinned-room counts for checking whether room preferences persisted.

@@ -63,7 +63,7 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 
 ## Diagnostics
 
-Paste diagnostics from each device below.
+Paste diagnostics from each device below, including the `Structured JSON` block emitted by the AirChat share action.
 
 ### Device A
 
@@ -82,7 +82,7 @@ Paste diagnostics from each device below.
 
 ## Diagnostics Compare
 
-Run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt> -OutFile <diagnostics-compare.md>` and paste or attach the generated Markdown report.
+Run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt> -OutFile <diagnostics-compare.md>` and paste or attach the generated Markdown report. The same command can compare JSON-only files copied from the structured blocks.
 
 ## Screenshots And Media
 
