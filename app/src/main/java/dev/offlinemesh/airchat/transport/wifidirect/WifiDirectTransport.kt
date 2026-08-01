@@ -26,6 +26,7 @@ import dev.offlinemesh.airchat.protocol.MeshPacket
 import dev.offlinemesh.airchat.protocol.MeshPacketCodec
 import dev.offlinemesh.airchat.protocol.PacketType
 import dev.offlinemesh.airchat.transport.MeshTransport
+import dev.offlinemesh.airchat.transport.TransportFailureCatalog
 import dev.offlinemesh.airchat.transport.TransportEvent
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -291,10 +292,19 @@ class WifiDirectTransport(
             }
 
             override fun onFailure(reason: Int) {
-                statusState.value = TransportStatus(NAME, TransportState.Degraded, "Wi-Fi Direct action failed: $reason")
+                statusState.value = TransportStatus(
+                    NAME,
+                    TransportState.Degraded,
+                    TransportFailureCatalog.wifiP2pFailure(successDetail.failureAction(), reason)
+                )
             }
         }
     }
+
+    private fun String.failureAction(): String =
+        substringBefore(':')
+            .replace("Wi-Fi Direct ", "")
+            .replaceFirstChar { if (it.isUpperCase()) it.lowercase() else it.toString() }
 
     private fun intentFilter() = IntentFilter().apply {
         addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)

@@ -5,7 +5,7 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 ## Phase 1: Reliable local chat
 
 - Stabilize LAN NSD discovery across common routers and hotspots.
-- Add a discovery/socket failure-code catalog for Logcat and shared diagnostics.
+- Add a router/hotspot compatibility matrix from field-test Logcat and shared diagnostics.
 - Add emulator-friendly fake transport for UI tests.
 - Expand public-room history sync with compact reconciliation for larger rooms.
 

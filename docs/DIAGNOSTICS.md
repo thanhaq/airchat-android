@@ -49,6 +49,15 @@ adb logcat -s AirChat
 
 For issue reports, include 30-60 seconds around the failure. The log line format is `category: detail`, and transport/socket failures are emitted as warnings or errors without message bodies, private-room passphrases, or file names.
 
+Common transport failure labels:
+
+- `FAILURE_ALREADY_ACTIVE`: Android NSD is already registering or discovering; tap refresh or restart AirChat before retrying.
+- `FAILURE_MAX_LIMIT`: Android NSD has too many operations active; stop duplicate discovery or reboot the Wi-Fi stack.
+- `FAILURE_INTERNAL_ERROR`: Android NSD hit an internal failure; toggle Wi-Fi or retry discovery.
+- `BUSY`: Wi-Fi Direct is busy; wait a few seconds and tap refresh.
+- `P2P_UNSUPPORTED`: the device or firmware does not support Wi-Fi Direct.
+- `ERROR`: generic Wi-Fi Direct failure; toggle Wi-Fi Direct or retry discovery.
+
 ## Reading The Output
 
 - `App` or `Protocol` differs: install the same APK on every device.

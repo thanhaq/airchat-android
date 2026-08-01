@@ -159,9 +159,10 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
 6. Tap `Share` and confirm the Android share sheet opens with readable diagnostics plus a `Structured JSON` block.
 7. Run `adb logcat -s AirChat` while reproducing discovery, socket, relay, and trust-import failures; confirm the lines mirror diagnostic categories without message bodies, private-room passphrases, or file names.
-8. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
-9. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
-10. Save the fenced JSON block from each report as `.json` files and confirm the same compare command accepts the JSON-only files.
+8. Force or capture at least one NSD/Wi-Fi Direct failure and confirm diagnostics show a labeled reason such as `FAILURE_ALREADY_ACTIVE`, `FAILURE_MAX_LIMIT`, `BUSY`, or `P2P_UNSUPPORTED` instead of only a numeric code.
+9. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
+10. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
+11. Save the fenced JSON block from each report as `.json` files and confirm the same compare command accepts the JSON-only files.
 
 ## Release sign-off
 

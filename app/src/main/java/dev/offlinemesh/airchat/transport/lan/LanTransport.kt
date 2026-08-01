@@ -15,6 +15,7 @@ import dev.offlinemesh.airchat.model.TransportStatus
 import dev.offlinemesh.airchat.protocol.MeshPacket
 import dev.offlinemesh.airchat.protocol.MeshPacketCodec
 import dev.offlinemesh.airchat.transport.MeshTransport
+import dev.offlinemesh.airchat.transport.TransportFailureCatalog
 import dev.offlinemesh.airchat.transport.TransportEvent
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -124,7 +125,11 @@ class LanTransport(
             }
 
             override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-                statusState.value = TransportStatus(NAME, TransportState.Degraded, "LAN registration failed: $errorCode")
+                statusState.value = TransportStatus(
+                    NAME,
+                    TransportState.Degraded,
+                    TransportFailureCatalog.nsdFailure("registration", errorCode)
+                )
             }
 
             override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) = Unit
@@ -157,7 +162,11 @@ class LanTransport(
             override fun onDiscoveryStopped(serviceType: String) = Unit
 
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-                statusState.value = TransportStatus(NAME, TransportState.Failed, "LAN discovery failed: $errorCode")
+                statusState.value = TransportStatus(
+                    NAME,
+                    TransportState.Failed,
+                    TransportFailureCatalog.nsdFailure("discovery", errorCode)
+                )
             }
 
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
@@ -168,7 +177,11 @@ class LanTransport(
     private fun resolve(serviceInfo: NsdServiceInfo) {
         nsdManager.resolveService(serviceInfo, object : NsdManager.ResolveListener {
             override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-                statusState.value = TransportStatus(NAME, TransportState.Degraded, "Resolve failed: $errorCode")
+                statusState.value = TransportStatus(
+                    NAME,
+                    TransportState.Degraded,
+                    TransportFailureCatalog.nsdFailure("resolve", errorCode)
+                )
             }
 
             override fun onServiceResolved(resolved: NsdServiceInfo) {
