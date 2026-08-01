@@ -13,6 +13,8 @@ The project is intentionally structured like a serious open-source repo: small p
 
 ![AirChat Android product preview](art/app-screens.svg)
 
+AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on the same resilient, accountless messaging idea; see [BitChat parity and differentiation](docs/BITCHAT_PARITY.md) for the honest feature matrix and roadmap.
+
 ## Current launch status
 
 - Public source is on `main` with GitHub Actions running unit tests, debug APK build, and Android lint.
@@ -237,6 +239,7 @@ Next security milestones:
 - [Protocol](docs/PROTOCOL.md)
 - [Threat model](docs/THREAT_MODEL.md)
 - [Android Wi-Fi notes](docs/ANDROID_WIFI_NOTES.md)
+- [BitChat parity and differentiation](docs/BITCHAT_PARITY.md)
 - [Test plan](docs/TEST_PLAN.md)
 - [Diagnostics workflow](docs/DIAGNOSTICS.md)
 - [Demo script](docs/DEMO_SCRIPT.md)
