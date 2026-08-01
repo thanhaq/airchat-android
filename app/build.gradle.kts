@@ -32,6 +32,13 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("fdroid") {
+            dimension = "distribution"
+        }
+    }
+
     signingConfigs {
         if (releaseSigningReady) {
             create("airchatRelease") {

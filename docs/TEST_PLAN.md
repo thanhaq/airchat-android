@@ -7,7 +7,7 @@ AirChat needs both automated protocol tests and real-device radio checks. Use th
 Run from the project root:
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+.\gradlew.bat :app:testFdroidDebugUnitTest :app:assembleFdroidDebug :app:lintFdroidDebug
 ```
 
 Expected coverage:

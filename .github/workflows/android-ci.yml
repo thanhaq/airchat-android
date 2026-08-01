@@ -17,8 +17,8 @@ jobs:
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v6
       - name: Unit tests
-        run: bash ./gradlew :app:testDebugUnitTest
+        run: bash ./gradlew :app:testFdroidDebugUnitTest
       - name: Debug build
-        run: bash ./gradlew :app:assembleDebug
+        run: bash ./gradlew :app:assembleFdroidDebug
       - name: Android lint
-        run: bash ./gradlew :app:lintDebug
+        run: bash ./gradlew :app:lintFdroidDebug

@@ -2,6 +2,9 @@
 set -euo pipefail
 
 version="${1:-local}"
+flavor="fdroid"
+variant="FdroidDebug"
+variant_slug="fdroidDebug"
 
 bash ./scripts/preflight.sh
 
@@ -22,14 +25,14 @@ json_escape() {
   printf '%s' "$value"
 }
 
-apk_source="app/build/outputs/apk/debug/app-debug.apk"
+apk_source="app/build/outputs/apk/${flavor}/debug/app-${flavor}-debug.apk"
 if [[ ! -f "$apk_source" ]]; then
   echo "Debug APK was not produced at $apk_source" >&2
   exit 1
 fi
 
 safe_version="$(printf '%s' "$version" | sed 's/[^A-Za-z0-9._-]/-/g')"
-apk_name="airchat-${safe_version}-debug-test.apk"
+apk_name="airchat-${safe_version}-${flavor}-debug-test.apk"
 apk_target="${release_dir}/${apk_name}"
 cp "$apk_source" "$apk_target"
 
@@ -45,6 +48,7 @@ cat > "${release_dir}/RELEASE_MANIFEST.json" <<EOF
   "app": "AirChat",
   "version": "$(json_escape "$version")",
   "variant": "debug-test",
+  "distributionFlavor": "$(json_escape "$flavor")",
   "sourceCommit": "${source_commit}",
   "generatedAtUtc": "${generated_at}",
   "apk": {
@@ -56,6 +60,7 @@ cat > "${release_dir}/RELEASE_MANIFEST.json" <<EOF
   "build": {
     "command": "bash ./scripts/package-debug-release.sh $(json_escape "$version")",
     "testGate": "bash ./scripts/preflight.sh",
+    "gradleVariant": "$(json_escape "$variant_slug")",
     "compileSdk": 35,
     "minSdk": 26,
     "targetSdk": 35
@@ -66,11 +71,13 @@ EOF
 cat > "${release_dir}/RELEASE_NOTES.md" <<EOF
 # AirChat ${version}
 
-This is an early Android debug test build for offline Wi-Fi mesh field testing.
+This is an early F-Droid-flavored Android debug test build for offline Wi-Fi mesh field testing.
 
 ## Verification
 
 - Source commit: ${source_commit}
+- Distribution flavor: ${flavor}
+- Gradle variant: ${variant_slug}
 - APK SHA-256: ${hash}
 - Machine-readable manifest: \`RELEASE_MANIFEST.json\`
 - Build command: \`bash ./scripts/package-debug-release.sh ${version}\`

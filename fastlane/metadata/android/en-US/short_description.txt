@@ -1,0 +1,1 @@
+Offline Wi-Fi mesh messenger with private rooms, encrypted DMs, and no server.

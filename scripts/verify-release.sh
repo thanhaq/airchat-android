@@ -78,6 +78,8 @@ fields = [
     apk.get("sha256"),
     apk.get("sizeBytes"),
     apk.get("signingCertificateSha256"),
+    manifest.get("distributionFlavor"),
+    (manifest.get("build") or {}).get("gradleVariant"),
 ]
 for field in fields:
     print("" if field is None else str(field))
@@ -90,12 +92,22 @@ apk_file="$(strip_cr "$(sed -n '4p' "$manifest_fields_file")")"
 manifest_hash="$(normalize_hex "$(sed -n '5p' "$manifest_fields_file")")"
 manifest_size="$(strip_cr "$(sed -n '6p' "$manifest_fields_file")")"
 manifest_fingerprint="$(normalize_hex "$(sed -n '7p' "$manifest_fields_file")")"
+distribution_flavor="$(strip_cr "$(sed -n '8p' "$manifest_fields_file")")"
+gradle_variant="$(strip_cr "$(sed -n '9p' "$manifest_fields_file")")"
 
 [[ "$schema" == "dev.offlinemesh.airchat.release-manifest.v1" ]] || fail "unsupported release manifest schema: $schema"
 case "$variant" in
   debug-test|signed-release) ;;
   *) fail "unsupported release variant: $variant" ;;
 esac
+if [[ -n "$distribution_flavor" ]]; then
+  [[ "$distribution_flavor" == "fdroid" ]] || fail "unsupported distribution flavor: $distribution_flavor"
+  expected_gradle_variant="fdroidRelease"
+  if [[ "$variant" == "debug-test" ]]; then
+    expected_gradle_variant="fdroidDebug"
+  fi
+  [[ "$gradle_variant" == "$expected_gradle_variant" ]] || fail "Gradle variant mismatch. Manifest=$gradle_variant, expected=$expected_gradle_variant"
+fi
 [[ -n "$apk_file" ]] || fail "manifest is missing apk.file"
 [[ ${#manifest_hash} -eq 64 ]] || fail "manifest apk.sha256 is missing or invalid"
 [[ "$manifest_size" =~ ^[0-9]+$ ]] || fail "manifest apk.sizeBytes is missing or invalid"
@@ -136,6 +148,10 @@ echo "Verified release manifest: $manifest_path"
 echo "Verified APK: $apk_path"
 echo "Version: $version"
 echo "Variant: $variant"
+if [[ -n "$distribution_flavor" ]]; then
+  echo "Distribution flavor: $distribution_flavor"
+  echo "Gradle variant: $gradle_variant"
+fi
 echo "SHA-256: $actual_hash"
 if [[ "$variant" == "signed-release" && "$skip_certificate" != "true" ]]; then
   echo "Signing certificate SHA-256: $manifest_fingerprint"

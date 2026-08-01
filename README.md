@@ -25,6 +25,7 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 ## What works now
 
 - Local Wi-Fi chat over a router, hotspot, or offline access point.
+- F-Droid-oriented `fdroid` distribution flavor with no proprietary SDKs, accounts, analytics, push service, or hosted backend.
 - Wi-Fi Direct peer discovery and connection flow.
 - Signed mesh packets using per-install P-256 identity keys.
 - Encrypted direct messages between peers with known public keys.
@@ -181,7 +182,7 @@ For diagnostics:
 Requirements: JDK 17 and Android SDK platform 35.
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+.\gradlew.bat :app:testFdroidDebugUnitTest :app:assembleFdroidDebug :app:lintFdroidDebug
 ```
 
 Or run the preflight helper, which also prints the debug APK SHA-256:
@@ -219,10 +220,10 @@ To publish after creating an empty GitHub repository:
 On macOS or Linux:
 
 ```bash
-bash ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+bash ./gradlew :app:testFdroidDebugUnitTest :app:assembleFdroidDebug :app:lintFdroidDebug
 ```
 
-The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+The debug APK is written to `app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk`.
 
 ## Security model
 
@@ -240,7 +241,7 @@ Next security milestones:
 - Courier per-peer quota controls, richer receipt details, and expiry tuning.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.
-- F-Droid ready flavor without proprietary dependencies.
+- F-Droid screenshots and reproducible build notes.
 
 ## Docs
 
@@ -254,6 +255,7 @@ Next security milestones:
 - [Release guide](docs/RELEASE.md)
 - [Release verification](docs/VERIFY_RELEASE.md)
 - [GitHub launch checklist](docs/GITHUB_LAUNCH.md)
+- [F-Droid readiness](docs/FDROID.md)
 - [Launch status](docs/LAUNCH_STATUS.md)
 - [Field test report template](docs/FIELD_TEST_REPORT.md)
 - [Roadmap](docs/ROADMAP.md)

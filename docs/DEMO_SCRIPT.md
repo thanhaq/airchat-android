@@ -61,5 +61,5 @@ Use this script for a short README GIF, release video, or social post.
 Show the README, the green CI badge, and the command:
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+.\gradlew.bat :app:testFdroidDebugUnitTest :app:assembleFdroidDebug :app:lintFdroidDebug
 ```

@@ -16,6 +16,7 @@ This file records the public launch state so contributors can quickly see what i
 
 - Tag: `v0.1.0`
 - Variant: `debug-test`
+- Distribution flavor: historical unflavored debug artifact; current packaging uses `fdroid`.
 - Release state: draft
 - Source commit: `3a6dd55092ab4de10ce6301c68fd794815224d01`
 - GitHub Actions package command: `bash ./scripts/package-debug-release.sh v0.1.0`

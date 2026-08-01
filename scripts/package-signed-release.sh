@@ -2,6 +2,9 @@
 set -euo pipefail
 
 version="${1:-local}"
+flavor="fdroid"
+variant="FdroidRelease"
+variant_slug="fdroidRelease"
 
 require_env() {
   local name="$1"
@@ -33,7 +36,7 @@ if [[ ! -f "$keystore" ]]; then
 fi
 
 bash ./scripts/preflight.sh
-bash ./gradlew :app:assembleRelease
+bash ./gradlew ":app:assemble${variant}"
 
 release_dir="release"
 mkdir -p "$release_dir"
@@ -52,14 +55,14 @@ json_escape() {
   printf '%s' "$value"
 }
 
-apk_source="app/build/outputs/apk/release/app-release.apk"
+apk_source="app/build/outputs/apk/${flavor}/release/app-${flavor}-release.apk"
 if [[ ! -f "$apk_source" ]]; then
   echo "Signed release APK was not produced at $apk_source" >&2
   exit 1
 fi
 
 safe_version="$(printf '%s' "$version" | sed 's/[^A-Za-z0-9._-]/-/g')"
-apk_name="airchat-${safe_version}-signed.apk"
+apk_name="airchat-${safe_version}-${flavor}-signed.apk"
 apk_target="${release_dir}/${apk_name}"
 cp "$apk_source" "$apk_target"
 
@@ -91,6 +94,7 @@ cat > "${release_dir}/RELEASE_MANIFEST.json" <<EOF
   "app": "AirChat",
   "version": "$(json_escape "$version")",
   "variant": "signed-release",
+  "distributionFlavor": "$(json_escape "$flavor")",
   "sourceCommit": "${source_commit}",
   "generatedAtUtc": "${generated_at}",
   "apk": {
@@ -102,6 +106,7 @@ cat > "${release_dir}/RELEASE_MANIFEST.json" <<EOF
   "build": {
     "command": "bash ./scripts/package-signed-release.sh $(json_escape "$version")",
     "testGate": "bash ./scripts/preflight.sh",
+    "gradleVariant": "$(json_escape "$variant_slug")",
     "compileSdk": 35,
     "minSdk": 26,
     "targetSdk": 35
@@ -112,11 +117,13 @@ EOF
 cat > "${release_dir}/RELEASE_NOTES.md" <<EOF
 # AirChat ${version}
 
-This is a signed Android APK for offline Wi-Fi mesh field testing and public GitHub release review.
+This is a signed F-Droid-flavored Android APK for offline Wi-Fi mesh field testing and public GitHub release review.
 
 ## Verification
 
 - Source commit: ${source_commit}
+- Distribution flavor: ${flavor}
+- Gradle variant: ${variant_slug}
 - APK SHA-256: ${hash}
 - Signing certificate SHA-256: ${fingerprint}
 - Machine-readable manifest: \`RELEASE_MANIFEST.json\`

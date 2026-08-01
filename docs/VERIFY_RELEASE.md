@@ -20,13 +20,13 @@ Each release should include:
 Clone the repository, check out the release tag, install JDK 17 and Android SDK platform 35, then run:
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+.\gradlew.bat :app:testFdroidDebugUnitTest :app:assembleFdroidDebug :app:lintFdroidDebug
 ```
 
 On macOS or Linux:
 
 ```bash
-bash ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+bash ./gradlew :app:testFdroidDebugUnitTest :app:assembleFdroidDebug :app:lintFdroidDebug
 ```
 
 To reproduce the debug test package layout:
@@ -49,7 +49,7 @@ Start with the release manifest:
 cat release/RELEASE_MANIFEST.json
 ```
 
-Confirm that `sourceCommit` matches the GitHub tag commit, `apk.file` matches the downloaded APK, and `apk.sha256` matches `SHA256SUMS.txt`.
+Confirm that `sourceCommit` matches the GitHub tag commit, `apk.file` matches the downloaded APK, `apk.sha256` matches `SHA256SUMS.txt`, `distributionFlavor` is `fdroid`, and `build.gradleVariant` matches the expected Gradle variant.
 
 The repository includes a verifier for the release folder:
 
@@ -68,13 +68,13 @@ For signed releases, the verifier also compares the certificate fingerprint prin
 On Windows:
 
 ```powershell
-Get-FileHash app\build\outputs\apk\debug\app-debug.apk -Algorithm SHA256
+Get-FileHash app\build\outputs\apk\fdroid\debug\app-fdroid-debug.apk -Algorithm SHA256
 ```
 
 On macOS or Linux:
 
 ```bash
-shasum -a 256 app/build/outputs/apk/debug/app-debug.apk
+shasum -a 256 app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
 ```
 
 For signed releases, also compare the signing certificate SHA-256 fingerprint in `release/RELEASE_NOTES.md` against the fingerprint published in the GitHub Release.

@@ -44,6 +44,8 @@
 - Added signed release packaging scripts and CI support for keystore-backed GitHub Release artifacts.
 - Added guarded GitHub publish scripts and a field-test report template.
 - Added diagnostics comparison tooling and workflow docs for two-device field reports.
+- Added structured diagnostics JSON export and JSON-aware diagnostics comparison.
+- Added F-Droid distribution flavor with release packaging, manifest metadata, and CI/preflight coverage.
 - Added Android lint to the documented and CI verification gate.
 - Added README badges and app-screen SVG artwork for GitHub presentation.
 - Added demo script for README GIFs, release videos, and social posts.

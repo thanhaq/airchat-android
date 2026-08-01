@@ -1,0 +1,8 @@
+Initial public release candidate.
+
+* Offline LAN and Wi-Fi Direct chat.
+* Signed mesh packet protocol with relay and delivery receipts.
+* Encrypted direct messages and passphrase private rooms.
+* File transfer with persistent encrypted inbox.
+* Courier store-and-forward relay with retention and quota controls.
+* Structured diagnostics export and release verification artifacts.

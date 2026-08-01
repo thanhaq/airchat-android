@@ -30,7 +30,7 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 
 ## Phase 5: Release polish
 
-- Add F-Droid build flavor.
+- Add F-Droid screenshots and reproducible-build notes.
 - Add screenshots and demo videos.
 - Add inline preview for common received file types.
 - Add reproducible release verification workflow.

@@ -67,7 +67,7 @@ The next high-impact parity targets are:
 - Add Wi-Fi Aware for supported Android devices.
 - Explore optional BLE low-bandwidth discovery while keeping Wi-Fi as the high-throughput data path.
 - Add signed public APK release automation after field testing.
-- Add F-Droid-ready build flavor and reproducible release verification.
+- Add F-Droid screenshots and reproducible release verification.
 
 ## Messaging For Contributors
 

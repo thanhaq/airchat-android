@@ -77,6 +77,18 @@ if ($manifest.variant -ne "debug-test" -and $manifest.variant -ne "signed-releas
     Write-Error "Unsupported release variant: $($manifest.variant)"
 }
 
+if ($manifest.distributionFlavor) {
+    if ($manifest.distributionFlavor -ne "fdroid") {
+        Write-Error "Unsupported distribution flavor: $($manifest.distributionFlavor)"
+    }
+
+    $gradleVariant = $manifest.build.gradleVariant
+    $expectedGradleVariant = if ($manifest.variant -eq "debug-test") { "fdroidDebug" } else { "fdroidRelease" }
+    if ($gradleVariant -ne $expectedGradleVariant) {
+        Write-Error "Gradle variant mismatch. Manifest=$gradleVariant, expected=$expectedGradleVariant"
+    }
+}
+
 if (-not $manifest.apk.file) {
     Write-Error "Manifest is missing apk.file"
 }
@@ -136,6 +148,10 @@ if ($manifest.variant -eq "signed-release") {
 Write-Host "Verified release manifest: $($manifestFile.FullName)"
 Write-Host "Verified APK: $apkPath"
 Write-Host "Variant: $($manifest.variant)"
+if ($manifest.distributionFlavor) {
+    Write-Host "Distribution flavor: $($manifest.distributionFlavor)"
+    Write-Host "Gradle variant: $($manifest.build.gradleVariant)"
+}
 Write-Host "SHA-256: $actualHash"
 if ($manifest.variant -eq "signed-release" -and -not $SkipCertificate) {
     Write-Host "Signing certificate SHA-256: $manifestFingerprint"

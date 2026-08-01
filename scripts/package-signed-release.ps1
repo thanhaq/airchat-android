@@ -4,6 +4,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$flavor = "fdroid"
+$variant = "FdroidRelease"
+$variantSlug = "fdroidRelease"
+
 function Get-RequiredEnv {
     param(
         [Parameter(Mandatory = $true)]
@@ -77,7 +81,7 @@ if (-not (Test-Path -LiteralPath $keystore)) {
 }
 
 & (Join-Path $PSScriptRoot "preflight.ps1")
-& .\gradlew.bat :app:assembleRelease
+& .\gradlew.bat ":app:assemble$variant"
 
 $releaseDir = Join-Path (Get-Location) "release"
 New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
@@ -86,13 +90,13 @@ Get-ChildItem -LiteralPath $releaseDir -File -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like "airchat-*.apk" -or $_.Name -in $generatedReleaseFiles } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
 
-$apkSource = Join-Path (Get-Location) "app\build\outputs\apk\release\app-release.apk"
+$apkSource = Join-Path (Get-Location) "app\build\outputs\apk\$flavor\release\app-$flavor-release.apk"
 if (-not (Test-Path -LiteralPath $apkSource)) {
     Write-Error "Signed release APK was not produced at $apkSource"
 }
 
 $safeVersion = $Version -replace '[^A-Za-z0-9._-]', '-'
-$apkName = "airchat-$safeVersion-signed.apk"
+$apkName = "airchat-$safeVersion-$flavor-signed.apk"
 $apkTarget = Join-Path $releaseDir $apkName
 Copy-Item -LiteralPath $apkSource -Destination $apkTarget -Force
 
@@ -115,6 +119,7 @@ $manifest = [ordered]@{
     app = "AirChat"
     version = $Version
     variant = "signed-release"
+    distributionFlavor = $flavor
     sourceCommit = $sourceCommit
     generatedAtUtc = $generatedAt
     apk = [ordered]@{
@@ -126,6 +131,7 @@ $manifest = [ordered]@{
     build = [ordered]@{
         command = ".\scripts\package-signed-release.ps1 $Version"
         testGate = ".\scripts\preflight.ps1"
+        gradleVariant = $variantSlug
         compileSdk = 35
         minSdk = 26
         targetSdk = 35
@@ -141,11 +147,13 @@ $notesFile = Join-Path $releaseDir "RELEASE_NOTES.md"
 $notes = @"
 # AirChat $Version
 
-This is a signed Android APK for offline Wi-Fi mesh field testing and public GitHub release review.
+This is a signed F-Droid-flavored Android APK for offline Wi-Fi mesh field testing and public GitHub release review.
 
 ## Verification
 
 - Source commit: $sourceCommit
+- Distribution flavor: $flavor
+- Gradle variant: $variantSlug
 - APK SHA-256: $hash
 - Signing certificate SHA-256: $fingerprint
 - Machine-readable manifest: ``RELEASE_MANIFEST.json``

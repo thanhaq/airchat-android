@@ -4,6 +4,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$flavor = "fdroid"
+$variant = "FdroidDebug"
+$variantSlug = "fdroidDebug"
+
 .\scripts\preflight.ps1
 
 $releaseDir = Join-Path (Get-Location) "release"
@@ -13,13 +17,13 @@ Get-ChildItem -LiteralPath $releaseDir -File -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like "airchat-*.apk" -or $_.Name -in $generatedReleaseFiles } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
 
-$apkSource = Join-Path (Get-Location) "app\build\outputs\apk\debug\app-debug.apk"
+$apkSource = Join-Path (Get-Location) "app\build\outputs\apk\$flavor\debug\app-$flavor-debug.apk"
 if (-not (Test-Path $apkSource)) {
     Write-Error "Debug APK was not produced at $apkSource"
 }
 
 $safeVersion = $Version -replace '[^A-Za-z0-9._-]', '-'
-$apkName = "airchat-$safeVersion-debug-test.apk"
+$apkName = "airchat-$safeVersion-$flavor-debug-test.apk"
 $apkTarget = Join-Path $releaseDir $apkName
 Copy-Item -LiteralPath $apkSource -Destination $apkTarget -Force
 
@@ -40,6 +44,7 @@ $manifest = [ordered]@{
     app = "AirChat"
     version = $Version
     variant = "debug-test"
+    distributionFlavor = $flavor
     sourceCommit = $sourceCommit
     generatedAtUtc = $generatedAt
     apk = [ordered]@{
@@ -51,6 +56,7 @@ $manifest = [ordered]@{
     build = [ordered]@{
         command = ".\scripts\package-debug-release.ps1 $Version"
         testGate = ".\scripts\preflight.ps1"
+        gradleVariant = $variantSlug
         compileSdk = 35
         minSdk = 26
         targetSdk = 35
@@ -66,11 +72,13 @@ $notesFile = Join-Path $releaseDir "RELEASE_NOTES.md"
 $notes = @"
 # AirChat $Version
 
-This is an early Android debug test build for offline Wi-Fi mesh field testing.
+This is an early F-Droid-flavored Android debug test build for offline Wi-Fi mesh field testing.
 
 ## Verification
 
 - Source commit: $sourceCommit
+- Distribution flavor: $flavor
+- Gradle variant: $variantSlug
 - APK SHA-256: $hash
 - Machine-readable manifest: ``RELEASE_MANIFEST.json``
 - Build command: ``.\scripts\package-debug-release.ps1 $Version``

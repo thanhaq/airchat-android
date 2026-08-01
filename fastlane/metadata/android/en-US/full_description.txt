@@ -1,0 +1,20 @@
+AirChat is an offline-first Android messenger for nearby devices. It can move messages across local Wi-Fi, hotspots, offline routers, and Wi-Fi Direct links without accounts, phone numbers, push services, or a hosted chat server.
+
+Core features:
+
+* Local Wi-Fi LAN discovery and TCP packet exchange.
+* Wi-Fi Direct discovery and connection flow.
+* Signed mesh packets with TTL-limited relay and deduplication.
+* Encrypted direct messages between known peer keys.
+* Passphrase-locked private rooms with room verification codes.
+* Public room history sync for recent signed public chat after reconnect.
+* Public, private-room, and direct file transfer with SHA-256 verification.
+* Bounded encrypted courier queue for store-and-forward relay.
+* Safety-number and QR verification cards.
+* Peer trust, key-change warnings, and peer blocking.
+* Background mesh service with generic privacy-preserving alerts.
+* In-app diagnostics with structured JSON export for field reports.
+
+AirChat is not compatible with BitChat. It is an Android Wi-Fi implementation of the same accountless, resilient local communication idea, with emphasis on higher-throughput local rooms, file transfer, diagnostics, and verifiable open-source releases.
+
+Public channels are visible to nearby peers. Use private rooms or encrypted direct messages before sending sensitive content.

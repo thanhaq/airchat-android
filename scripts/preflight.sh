@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-tasks=(":app:testDebugUnitTest" ":app:assembleDebug")
+variant="FdroidDebug"
+apk="app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk"
+tasks=(":app:test${variant}UnitTest" ":app:assemble${variant}")
 if [[ "${1:-}" != "--skip-lint" ]]; then
-  tasks+=(":app:lintDebug")
+  tasks+=(":app:lint${variant}")
 fi
 
 bash ./gradlew "${tasks[@]}"
 
-apk="app/build/outputs/apk/debug/app-debug.apk"
 if [[ ! -f "$apk" ]]; then
   echo "Debug APK was not produced at $apk" >&2
   exit 1
