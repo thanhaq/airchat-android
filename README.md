@@ -38,7 +38,7 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 - Persistent peer blocklist with UI actions and `/block` / `/unblock` commands.
 - QR safety-number cards and private-room invite cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
-- Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
+- Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, inline previews for common file types, save/share actions, and SHA-256 verification.
 - Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls, per-origin quota controls, and user-visible relay receipts.
 - Public-room history sync that lets peers exchange recent signed public chat packets after reconnect without replaying private rooms, DMs, or files.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
@@ -159,6 +159,7 @@ For files:
 4. Public files use room packets; private-room files use encrypted room packets; DM files are wrapped inside encrypted direct packets.
 5. Peers reassemble the transfer when every chunk arrives and the SHA-256 hash matches.
 6. Tap the save icon beside a received file to write it to device storage, or the share icon to send it through Android's share sheet.
+7. Text files show a short inline snippet, images show a thumbnail when Android can decode them, and common documents show a clear type label.
 
 For background mesh mode:
 
@@ -240,7 +241,6 @@ Next security milestones:
 - Camera scan-to-verify for QR safety cards.
 - Courier per-peer quota controls, richer receipt details, and expiry tuning.
 - Wi-Fi Aware transport for supported Android devices.
-- Inline preview for common received file types.
 - F-Droid screenshots and reproducible build notes.
 
 ## Docs

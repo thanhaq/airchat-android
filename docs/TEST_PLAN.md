@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue quotas, ACK receipts, user-visible courier receipt state, public history sync, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
+- Router outbox, relay, courier queue quotas, ACK receipts, user-visible courier receipt state, public history sync, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, received-file previews, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -125,9 +125,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 2. Confirm the receiver shows the file, size, and hash prefix.
 3. Save the file to device storage and verify its contents.
 4. Share the file through Android's share sheet.
-5. Restart AirChat and confirm the received-file inbox still shows the file.
-6. Repeat in private-room mode and confirm file metadata is not visible in raw room packet payloads during unit tests.
-7. Repeat in DM mode and confirm file metadata is not visible in raw direct packet payloads during unit tests.
+5. Receive a `.txt` or `.json` file and confirm the inbox shows a short inline text preview without opening another app.
+6. Receive a `.png` or `.jpg` file and confirm the inbox shows an inline thumbnail when Android can decode it.
+7. Receive a PDF or ZIP file and confirm the inbox shows a document/archive type label.
+8. Restart AirChat and confirm the received-file inbox still shows the file.
+9. Repeat in private-room mode and confirm file metadata is not visible in raw room packet payloads during unit tests.
+10. Repeat in DM mode and confirm file metadata is not visible in raw direct packet payloads during unit tests.
 
 ## Background mesh test
 

@@ -29,8 +29,8 @@ Use this script for a short README GIF, release video, or social post.
 16. Open the peer row and show the safety number.
 17. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
 18. Type `/msg <peer> encrypted hello` to send a private message.
-19. Attach a small text file in DM mode.
-20. Show the receiver's file strip with save and share actions.
+19. Attach a small text or image file in DM mode.
+20. Show the receiver's file strip with inline preview plus save and share actions.
 21. Tap the `Courier` chip and show relay retention plus clear queue controls.
 22. Open diagnostics and show transport/key/power/courier status, courier quota, plus recent events.
 23. Enable background mesh mode and show the persistent notification plus a generic new-message alert.

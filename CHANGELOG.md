@@ -21,6 +21,7 @@
 - Added encrypted trust store, peer trust confirmation, and key-change blocking for direct sends.
 - Added encrypted peer blocklist with UI actions, slash commands, diagnostics, and inbound packet drops.
 - Added public-channel and encrypted direct file transfer with Android picker, manifest/chunk packets, persistent encrypted inbox, and SHA-256 reassembly checks.
+- Added inline previews for text, image, document, archive, and binary received files.
 - Added encrypted local persistence for received-file inbox metadata and blobs.
 - Added save-to-device UI for received files.
 - Added Android share sheet support for received files through a non-exported FileProvider.

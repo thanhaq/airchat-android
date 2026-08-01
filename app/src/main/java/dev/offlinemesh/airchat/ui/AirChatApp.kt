@@ -3,6 +3,7 @@ package dev.offlinemesh.airchat.ui
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
@@ -10,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -80,6 +82,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GeometrySize
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -90,6 +95,9 @@ import dev.offlinemesh.airchat.core.ChatUiState
 import dev.offlinemesh.airchat.core.ChatViewModel
 import dev.offlinemesh.airchat.core.DiagnosticsReportFormatter
 import dev.offlinemesh.airchat.core.DiagnosticsSnapshot
+import dev.offlinemesh.airchat.core.ReceivedFilePreview
+import dev.offlinemesh.airchat.core.ReceivedFilePreviewKind
+import dev.offlinemesh.airchat.core.ReceivedFilePreviewer
 import dev.offlinemesh.airchat.crypto.IdentityKeySecurity
 import dev.offlinemesh.airchat.crypto.QrCodeEncoder
 import dev.offlinemesh.airchat.crypto.QrCodeMatrix
@@ -705,16 +713,20 @@ private fun FileStrip(
                 fontWeight = FontWeight.SemiBold
             )
             files.takeLast(3).asReversed().forEach { file ->
+                val preview = remember(file.id, file.sha256) { ReceivedFilePreviewer.preview(file) }
                 ListItem(
                     headlineContent = {
                         Text(file.fileName, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     },
                     supportingContent = {
-                        Text(
-                            text = "${formatBytes(file.totalBytes)} / ${file.sha256.take(12)}",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "${formatBytes(file.totalBytes)} / ${file.sha256.take(12)}",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            ReceivedFilePreviewContent(file = file, preview = preview)
+                        }
                     },
                     trailingContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -729,6 +741,66 @@ private fun FileStrip(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ReceivedFilePreviewContent(file: ReceivedFile, preview: ReceivedFilePreview) {
+    when (preview.kind) {
+        ReceivedFilePreviewKind.Text -> TextFilePreview(preview)
+        ReceivedFilePreviewKind.Image -> ImageFilePreview(file, preview)
+        ReceivedFilePreviewKind.Document,
+        ReceivedFilePreviewKind.Binary -> Text(
+            text = preview.label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun TextFilePreview(preview: ReceivedFilePreview) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = preview.body ?: preview.label,
+            modifier = Modifier.padding(8.dp),
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun ImageFilePreview(file: ReceivedFile, preview: ReceivedFilePreview) {
+    val bitmap = remember(file.id, file.sha256) {
+        BitmapFactory.decodeByteArray(file.bytes, 0, file.bytes.size)?.asImageBitmap()
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        bitmap?.let { image ->
+            Image(
+                bitmap = image,
+                contentDescription = preview.label,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(96.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentScale = ContentScale.Crop
+            )
+        }
+        Text(
+            text = preview.label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
