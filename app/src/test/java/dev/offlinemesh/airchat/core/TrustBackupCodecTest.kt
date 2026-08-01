@@ -27,7 +27,10 @@ class TrustBackupCodecTest {
         assertEquals(TrustBackupCodec.SIGNED_SCHEMA, backup.schema)
         assertEquals(alice.peerId, backup.payload.exporterPeerId)
         assertEquals("Alice Field Phone", backup.payload.exporterDisplayName)
-        assertEquals(listOf(bob.peerId, carol.peerId), backup.payload.trustedPeers.map { it.peerId })
+        assertEquals(
+            listOf(bob.peerId, carol.peerId).sorted(),
+            backup.payload.trustedPeers.map { it.peerId }
+        )
         assertTrue(TrustBackupCodec.verify(backup).isValid)
 
         val decoded = TrustBackupCodec.decode(TrustBackupCodec.encode(backup))
