@@ -165,11 +165,12 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 9. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
 10. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
 11. Save the fenced JSON block from each report as `.json` files and confirm the same compare command accepts the JSON-only files.
+12. Open `docs/diagnostics-viewer.html`, paste or upload both reports, and confirm the browser view highlights the same mismatches while working without a network connection.
 
 ## Release sign-off
 
 - Record device model, Android version, and transport used.
 - Attach diagnostics text and structured JSON from both phones.
-- Attach the Markdown output from `scripts/compare-diagnostics.ps1`.
+- Attach the Markdown output from `scripts/compare-diagnostics.ps1` and note whether `docs/diagnostics-viewer.html` showed the same mismatches.
 - Capture at least one screenshot of LAN chat, private-room locked/unlocked state, QR invite card, Wi-Fi Direct peer list, QR safety card, DM verification, and file inbox.
 - Note failures with logcat output and whether battery saver was enabled.

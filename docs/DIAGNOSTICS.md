@@ -39,6 +39,8 @@ The compare scripts accept the original text report, the shared report with embe
 - The last recent events from each device.
 - Suggested checks for common mismatches.
 
+For a clickable local view, open [diagnostics-viewer.html](diagnostics-viewer.html) in a browser and paste or upload both reports. The viewer runs fully offline in the browser, accepts either shared text reports or JSON exports, and highlights the same transport, room, power, courier, and event-category differences without sending data anywhere.
+
 ## Capture Logcat
 
 AirChat mirrors the same privacy-preserving diagnostic events to Android Logcat with the `AirChat` tag. Use this when a transport failure happens before you can open the diagnostics dialog, or when socket failures need exact timing.

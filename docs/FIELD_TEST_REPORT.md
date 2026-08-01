@@ -85,6 +85,8 @@ Paste diagnostics from each device below, including the `Structured JSON` block 
 
 Run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt> -OutFile <diagnostics-compare.md>` and paste or attach the generated Markdown report. The same command can compare JSON-only files copied from the structured blocks.
 
+Open `docs/diagnostics-viewer.html` in a browser, paste or upload both reports, and note whether the offline visual diff shows the same mismatches.
+
 ## Screenshots And Media
 
 - LAN chat:

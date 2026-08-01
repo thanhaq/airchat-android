@@ -179,7 +179,7 @@ For diagnostics:
 1. Tap the info icon in the top bar.
 2. Check identity-key backing, Android version, private-room code/strength, visible peer/room count, unread-room count, transport states, and recent diagnostic events.
 3. Use `Share` when attaching a field-test report or GitHub issue.
-4. Compare two device reports or structured JSON exports with `scripts/compare-diagnostics.ps1` when debugging asymmetric discovery or delivery.
+4. Compare two device reports or structured JSON exports with `scripts/compare-diagnostics.ps1`, or open `docs/diagnostics-viewer.html` for an offline visual diff, when debugging asymmetric discovery or delivery.
 5. Capture matching Logcat snippets with `adb logcat -s AirChat` when diagnosing discovery, socket, relay, or import failures on physical devices.
 
 ## Build from terminal
@@ -255,6 +255,7 @@ Next security milestones:
 - [BitChat parity and differentiation](docs/BITCHAT_PARITY.md)
 - [Test plan](docs/TEST_PLAN.md)
 - [Diagnostics workflow](docs/DIAGNOSTICS.md)
+- [Offline diagnostics viewer](docs/diagnostics-viewer.html)
 - [Demo script](docs/DEMO_SCRIPT.md)
 - [Release guide](docs/RELEASE.md)
 - [Release verification](docs/VERIFY_RELEASE.md)

@@ -34,7 +34,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 | Identity verification | QR verification binds nickname to fingerprint. | Safety-number compare, QR/shareable safety cards, signed trust backup export/import, trust records, and key-change protection. |
 | Panic wipe | Clears local identity and retained delivery state. | Clears local history, outbox, peer cache, identity data on disk, and rotates in-memory identity. |
 | Power behavior | Adaptive battery optimizations. | Visible normal/conserve/critical power policy, relay TTL clamp, courier flush spacing, and critical-battery courier storage pause. |
-| Diagnostics | Protocol whitepaper and build verification guidance. | In-app diagnostics report, privacy-preserving recent event log, Logcat mirroring with Android failure-code labels, structured JSON export, compare scripts, release manifest, launch status, and field-test template. |
+| Diagnostics | Protocol whitepaper and build verification guidance. | In-app diagnostics report, privacy-preserving recent event log, Logcat mirroring with Android failure-code labels, structured JSON export, compare scripts, offline visual diff viewer, release manifest, launch status, and field-test template. |
 | Public release state | App Store/Play Store listed by upstream README. | Public source and draft v0.1.0 debug-test release candidate; signed public APK promotion waits for field testing. |
 
 ## Where AirChat Is Already Competitive
@@ -46,7 +46,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 - File transfer is a first-class feature across public rooms, private rooms, and DMs.
 - Recent public-room history sync helps reconnecting peers catch up on signed public chat without replaying private-room, DM, or file payloads.
 - Courier relay now has per-origin fairness quotas and signed receipts surfaced as a `relayed` state so senders can distinguish relay retention from final delivery.
-- Diagnostics are designed for GitHub issues and field testing, with report comparison scripts for asymmetric discovery or delivery bugs.
+- Diagnostics are designed for GitHub issues and field testing, with report comparison scripts and an offline visual diff viewer for asymmetric discovery or delivery bugs.
 - The repository has launch artifacts that make trust review easier: threat model, protocol docs, release guide, verification guide, CI, generated manifests, checksums, and a field-test report template.
 
 ## Where BitChat Is Ahead
