@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 data class TrustImportResult(
     val addedCount: Int,
     val unchangedCount: Int,
+    val replacedConflictCount: Int,
     val skippedConflictCount: Int,
     val skippedSelfCount: Int
 )
@@ -272,10 +273,14 @@ class MeshRouter(
         return true
     }
 
-    fun importTrustedPeers(peers: Collection<TrustedPeer>): TrustImportResult {
+    fun importTrustedPeers(
+        peers: Collection<TrustedPeer>,
+        replaceConflicts: Boolean = false
+    ): TrustImportResult {
         val existing = peerTrustStore.loadTrustedPeers()
         var added = 0
         var unchanged = 0
+        var replacedConflict = 0
         var skippedConflict = 0
         var skippedSelf = 0
         peers.distinctBy { it.peerId }.forEach { peer ->
@@ -286,6 +291,10 @@ class MeshRouter(
                     added += 1
                 }
                 existing.getValue(peer.peerId).publicKey == peer.publicKey -> unchanged += 1
+                replaceConflicts -> {
+                    peerTrustStore.trustPeer(peer)
+                    replacedConflict += 1
+                }
                 else -> skippedConflict += 1
             }
         }
@@ -293,11 +302,12 @@ class MeshRouter(
         refreshVisiblePeers()
         logEvent(
             "trust",
-            "import added $added unchanged $unchanged conflicts $skippedConflict self $skippedSelf"
+            "import added $added unchanged $unchanged replaced $replacedConflict conflicts $skippedConflict self $skippedSelf"
         )
         return TrustImportResult(
             addedCount = added,
             unchangedCount = unchanged,
+            replacedConflictCount = replacedConflict,
             skippedConflictCount = skippedConflict,
             skippedSelfCount = skippedSelf
         )

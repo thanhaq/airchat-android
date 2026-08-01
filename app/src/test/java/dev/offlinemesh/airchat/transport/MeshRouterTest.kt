@@ -1164,9 +1164,66 @@ class MeshRouterTest {
         )
 
         assertEquals(0, result.addedCount)
+        assertEquals(0, result.replacedConflictCount)
         assertEquals(1, result.skippedConflictCount)
         assertEquals(1, result.skippedSelfCount)
         assertEquals(oldBob.publicKeyEncoded, trustStore.loadTrustedPeers().getValue(fixedPeerId).publicKey)
+    }
+
+    @Test
+    fun importTrustedPeersCanReplaceConflictsWhenExplicitlyRequested() = runTest {
+        val alice = TestIdentity("alice")
+        val oldBob = TestIdentity("bob-old")
+        val newBob = TestIdentity("bob-new")
+        val fixedPeerId = "stable-peer-id"
+        val transport = FakeTransport()
+        val trustStore = InMemoryPeerTrustStore().apply {
+            trustPeer(
+                TrustedPeer(
+                    peerId = fixedPeerId,
+                    displayName = "bob",
+                    publicKey = oldBob.publicKeyEncoded,
+                    trustedAt = 1L
+                )
+            )
+        }
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            peerTrustStore = trustStore,
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        transport.publishPeers(
+            listOf(
+                peerFor(newBob).copy(
+                    id = fixedPeerId,
+                    name = "bob"
+                )
+            )
+        )
+        advanceUntilIdle()
+        assertEquals(PeerTrustState.KeyChanged, router.peers.value.single().trustState)
+
+        val result = router.importTrustedPeers(
+            peers = listOf(
+                TrustedPeer(
+                    peerId = fixedPeerId,
+                    displayName = "bob",
+                    publicKey = newBob.publicKeyEncoded,
+                    trustedAt = 2L
+                )
+            ),
+            replaceConflicts = true
+        )
+
+        assertEquals(0, result.addedCount)
+        assertEquals(1, result.replacedConflictCount)
+        assertEquals(0, result.skippedConflictCount)
+        assertEquals(newBob.publicKeyEncoded, trustStore.loadTrustedPeers().getValue(fixedPeerId).publicKey)
+        assertEquals(PeerTrustState.Trusted, router.peers.value.single().trustState)
     }
 
     @Test

@@ -70,14 +70,15 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 5. Tap the top-bar trust-backup icon and confirm the shared text contains a signed JSON payload with trusted peer public keys but no messages, room passphrases, or private keys.
 6. On a fresh device, tap the import trust-backup icon, select the backup file, confirm the review dialog shows the exporter, and import the new trusted peers after verifying the exporter out of band.
 7. Share the same backup text or JSON file to AirChat from Android's share sheet and confirm AirChat opens the same review/import flow.
-8. Repeat import on a device that already trusts the same peer id with a different public key, and confirm the dialog/result reports the conflict was skipped.
-9. Tap `DM` and send a private message.
-10. Confirm the message appears only in the direct conversation.
-11. Confirm the sender changes the DM from sent to received only after the recipient receives it.
-12. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
-13. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
-14. Type `/block` and confirm phone B is listed.
-15. Type `/unblock <peer>` and confirm DMs can be sent again.
+8. Repeat import on a device that already trusts the same peer id with a different public key, choose `Import new`, and confirm the dialog/result reports the conflict was skipped.
+9. Repeat the same conflict after comparing the changed key out of band, choose `Replace keys`, and confirm the peer returns from `Key changed` to `Trusted`.
+10. Tap `DM` and send a private message.
+11. Confirm the message appears only in the direct conversation.
+12. Confirm the sender changes the DM from sent to received only after the recipient receives it.
+13. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
+14. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
+15. Type `/block` and confirm phone B is listed.
+16. Type `/unblock <peer>` and confirm DMs can be sent again.
 
 ## Private room test
 

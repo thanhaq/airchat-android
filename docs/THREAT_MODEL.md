@@ -46,7 +46,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
 - QR/shareable safety cards and QR private-room invite cards make out-of-band comparison easier without transmitting passphrases or private keys.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
-- Signed trust backups contain trusted peer public keys, the exporter public key, and an exporter signature so the import flow can verify provenance. Imports add new trusted peers only; self records and key conflicts are skipped instead of overwriting existing trust. Backups do not include private keys, messages, room passphrases, or files.
+- Signed trust backups contain trusted peer public keys, the exporter public key, and an exporter signature so the import flow can verify provenance. Imports add new trusted peers by default; self records are skipped, and key conflicts keep existing trust unless the user explicitly chooses `Replace keys` after checking the changed keys out of band. Backups do not include private keys, messages, room passphrases, or files.
 - Blocked peer ids are encrypted at rest and excluded from Android backup; blocked packets are dropped before display, ACK, relay, or courier storage.
 - Background mesh alerts avoid message bodies and file names, showing only sender and conversation labels.
 - Diagnostics recent events are kept in memory and avoid message bodies, private-room passphrases, and file names.

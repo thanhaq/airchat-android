@@ -148,7 +148,7 @@ For peer verification:
 4. Confirm the dialog only after the code matches.
 5. If the same peer id later advertises a different public key, AirChat marks it `Key changed` and blocks direct sends until you explicitly trust the new key.
 6. Use the top-bar trust-backup icon to share a signed JSON backup of trusted peer public keys. The backup includes the exporting device's public key and signature, but no private keys, messages, room passphrases, or file contents.
-7. Use the import trust-backup icon on another device to select the backup file, or share the backup text/file to AirChat from Android's share sheet. AirChat verifies the exporter signature first, shows a review dialog, imports new trusted peers, and skips self records or key conflicts instead of overwriting existing trust.
+7. Use the import trust-backup icon on another device to select the backup file, or share the backup text/file to AirChat from Android's share sheet. AirChat verifies the exporter signature first, shows a review dialog, imports new trusted peers, and keeps existing trust on key conflicts unless you explicitly choose `Replace keys` after checking the changed keys out of band.
 
 To block a peer, tap the block icon in its peer row or type `/block peer`. Blocked peers stay visible when discovered so they can be unblocked, but AirChat drops their packets before display, ACK, relay, or courier storage.
 

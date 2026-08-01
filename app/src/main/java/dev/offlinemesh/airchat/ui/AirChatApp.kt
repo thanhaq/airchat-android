@@ -322,17 +322,39 @@ fun AirChatApp(
         AlertDialog(
             onDismissRequest = { trustBackupReview = null },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val result = container.router.importTrustedPeers(review.trustedPeers)
-                        trustBackupReview = null
-                        trustBackupNotice = TrustBackupImportNotice(
-                            title = "Trust backup imported",
-                            body = trustImportResultLabel(result)
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (review.conflictCount > 0) {
+                        TextButton(
+                            onClick = {
+                                val result = container.router.importTrustedPeers(
+                                    peers = review.trustedPeers,
+                                    replaceConflicts = true
+                                )
+                                trustBackupReview = null
+                                trustBackupNotice = TrustBackupImportNotice(
+                                    title = "Trust backup imported",
+                                    body = trustImportResultLabel(result)
+                                )
+                            }
+                        ) {
+                            Text("Replace keys")
+                        }
                     }
-                ) {
-                    Text("Import")
+                    TextButton(
+                        onClick = {
+                            val result = container.router.importTrustedPeers(
+                                peers = review.trustedPeers,
+                                replaceConflicts = false
+                            )
+                            trustBackupReview = null
+                            trustBackupNotice = TrustBackupImportNotice(
+                                title = "Trust backup imported",
+                                body = trustImportResultLabel(result)
+                            )
+                        }
+                    ) {
+                        Text(if (review.conflictCount > 0) "Import new" else "Import")
+                    }
                 }
             },
             dismissButton = {
@@ -351,12 +373,16 @@ fun AirChatApp(
                     Text("Trusted peers in backup: ${review.trustedPeers.size}")
                     Text("Will add: ${review.newCount}")
                     Text("Already trusted: ${review.unchangedCount}")
-                    Text("Key conflicts skipped: ${review.conflictCount}")
+                    Text("Key conflicts: ${review.conflictCount}")
                     if (review.selfCount > 0) {
                         Text("Self records skipped: ${review.selfCount}")
                     }
                     Text(
-                        text = "Verify the exporter out of band before importing. Conflicting keys are skipped.",
+                        text = if (review.conflictCount > 0) {
+                            "Verify the exporter and changed keys out of band. Import new keeps existing trust; Replace keys overwrites conflicting trust records."
+                        } else {
+                            "Verify the exporter out of band before importing."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1587,6 +1613,7 @@ private fun shareTrustBackup(context: Context, backup: SignedTrustBackup) {
 private fun trustImportResultLabel(result: TrustImportResult): String = buildString {
     append("Added ${result.addedCount} trusted peers.")
     if (result.unchangedCount > 0) append(" Already trusted: ${result.unchangedCount}.")
+    if (result.replacedConflictCount > 0) append(" Replaced conflicts: ${result.replacedConflictCount}.")
     if (result.skippedConflictCount > 0) append(" Key conflicts skipped: ${result.skippedConflictCount}.")
     if (result.skippedSelfCount > 0) append(" Self records skipped: ${result.skippedSelfCount}.")
 }
