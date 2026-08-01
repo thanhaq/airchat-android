@@ -198,6 +198,12 @@ To package a labeled debug test build and SHA file for GitHub Releases:
 
 The package scripts write `release/RELEASE_NOTES.md`, `release/SHA256SUMS.txt`, and `release/RELEASE_MANIFEST.json` for release verification.
 
+To verify a generated release folder before publishing:
+
+```powershell
+.\scripts\verify-release.ps1 release\RELEASE_MANIFEST.json
+```
+
 To package a signed public APK after configuring release signing environment variables:
 
 ```powershell

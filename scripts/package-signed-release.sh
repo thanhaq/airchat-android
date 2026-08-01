@@ -69,13 +69,15 @@ else
   hash="$(shasum -a 256 "$apk_target" | awk '{print $1}')"
 fi
 
-fingerprint="unavailable: apksigner not found"
-if apksigner="$(find_apksigner)"; then
-  cert_output="$("$apksigner" verify --print-certs "$apk_target" 2>&1)"
-  fingerprint="$(printf '%s\n' "$cert_output" | awk -F': ' '/Signer #1 certificate SHA-256 digest/ { print $2; exit }')"
-  if [[ -z "$fingerprint" ]]; then
-    fingerprint="unavailable: certificate digest not printed"
-  fi
+if ! apksigner="$(find_apksigner)"; then
+  echo "apksigner not found. Install Android SDK build tools before packaging a signed release." >&2
+  exit 1
+fi
+cert_output="$("$apksigner" verify --print-certs "$apk_target" 2>&1)"
+fingerprint="$(printf '%s\n' "$cert_output" | awk -F': ' '/Signer #1 certificate SHA-256 digest/ { print $2; exit }')"
+if [[ -z "$fingerprint" ]]; then
+  echo "apksigner did not print a signer SHA-256 digest for $apk_target" >&2
+  exit 1
 fi
 
 source_commit="$(git rev-parse HEAD)"

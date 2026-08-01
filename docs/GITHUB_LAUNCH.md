@@ -48,6 +48,7 @@ To publish and trigger the draft release workflow with a tag:
 - Attach the debug APK only if the release title or notes clearly say it is a test build.
 - Include the source commit SHA and APK SHA-256.
 - Attach `RELEASE_MANIFEST.json` so users and mirrors can verify the APK filename, hash, source commit, package variant, and signing fingerprint.
+- Run `scripts/verify-release.*` against `RELEASE_MANIFEST.json` before publishing the draft release.
 - Include the signing certificate SHA-256 fingerprint for signed APK releases.
 - Link the real-device test notes from `docs/TEST_PLAN.md`.
 - Include diagnostics text from both test devices.

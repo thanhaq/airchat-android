@@ -91,6 +91,20 @@ bash ./scripts/package-signed-release.sh v0.1.0
 
 The signed package script runs the full preflight gate, builds `:app:assembleRelease`, copies the signed APK into `release/`, writes `SHA256SUMS.txt`, writes `RELEASE_MANIFEST.json`, records the source commit, and records the signing certificate SHA-256 fingerprint in `RELEASE_NOTES.md`.
 
+Verify the generated manifest and APK before uploading or publishing:
+
+```powershell
+.\scripts\verify-release.ps1 release\RELEASE_MANIFEST.json
+```
+
+On macOS or Linux:
+
+```bash
+bash ./scripts/verify-release.sh release/RELEASE_MANIFEST.json
+```
+
+The verifier confirms the manifest schema, APK filename, byte size, SHA-256 hash, `SHA256SUMS.txt`, and signed-release certificate fingerprint. The GitHub release workflow runs this verifier before uploading artifacts.
+
 For GitHub Actions signed releases, add these repository secrets:
 
 - `AIRCHAT_KEYSTORE_BASE64`: base64-encoded release keystore.

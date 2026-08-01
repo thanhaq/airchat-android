@@ -51,6 +51,20 @@ cat release/RELEASE_MANIFEST.json
 
 Confirm that `sourceCommit` matches the GitHub tag commit, `apk.file` matches the downloaded APK, and `apk.sha256` matches `SHA256SUMS.txt`.
 
+The repository includes a verifier for the release folder:
+
+```powershell
+.\scripts\verify-release.ps1 release\RELEASE_MANIFEST.json
+```
+
+On macOS or Linux:
+
+```bash
+bash ./scripts/verify-release.sh release/RELEASE_MANIFEST.json
+```
+
+For signed releases, the verifier also compares the certificate fingerprint printed by Android `apksigner` with `apk.signingCertificateSha256` in the manifest.
+
 On Windows:
 
 ```powershell

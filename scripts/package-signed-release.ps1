@@ -48,17 +48,17 @@ function Get-ApkCertificateFingerprint {
 
     $apkSigner = Find-ApkSigner
     if (-not $apkSigner) {
-        return "unavailable: apksigner not found"
+        Write-Error "apksigner not found. Install Android SDK build tools before packaging a signed release."
     }
 
     $output = & $apkSigner verify --print-certs $ApkPath 2>&1
     if ($LASTEXITCODE -ne 0) {
-        return "unavailable: apksigner verification failed"
+        Write-Error "apksigner verification failed for $ApkPath"
     }
 
     $line = $output | Select-String -Pattern "Signer #1 certificate SHA-256 digest:\s*(.+)" | Select-Object -First 1
     if (-not $line) {
-        return "unavailable: certificate digest not printed"
+        Write-Error "apksigner did not print a signer SHA-256 digest for $ApkPath"
     }
 
     return $line.Matches[0].Groups[1].Value.Trim()
