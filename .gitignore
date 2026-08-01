@@ -4,6 +4,7 @@ local.properties
 *.iml
 .idea/
 .kotlin/
+.tools/
 captures/
 app/build/
 release/
