@@ -54,6 +54,18 @@ class BackgroundAlertTrackerTest {
     }
 
     @Test
+    fun ignoresRelayedMessagesForAlerts() {
+        val tracker = BackgroundAlertTracker()
+
+        assertNull(
+            tracker.consumeMessageAlert(
+                messages = listOf(message(id = "relayed-message", state = DeliveryState.Relayed)),
+                shouldNotify = true
+            )
+        )
+    }
+
+    @Test
     fun alertsForNewReceivedFileWithoutFileName() {
         val tracker = BackgroundAlertTracker()
         val file = receivedFile(id = "file-1", fileName = "private-notes.txt")

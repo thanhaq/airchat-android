@@ -1054,6 +1054,7 @@ private fun deliveryLabel(message: ChatMessage): String {
     val base = when (message.state) {
         DeliveryState.Pending -> "pending"
         DeliveryState.Sent -> "sent"
+        DeliveryState.Relayed -> "relayed"
         DeliveryState.Received -> "received"
         DeliveryState.Verified -> "verified"
         DeliveryState.Unverified -> "unverified"

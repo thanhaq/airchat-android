@@ -19,6 +19,7 @@ data class ChatMessage(
 enum class DeliveryState {
     Pending,
     Sent,
+    Relayed,
     Received,
     Verified,
     Unverified,

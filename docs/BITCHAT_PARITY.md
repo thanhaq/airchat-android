@@ -45,7 +45,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 - Private-room encryption is built around group workflows, not only one-to-one DMs.
 - File transfer is a first-class feature across public rooms, private rooms, and DMs.
 - Recent public-room history sync helps reconnecting peers catch up on signed public chat without replaying private-room, DM, or file payloads.
-- Courier relay now has per-origin fairness quotas and signed receipts so senders can distinguish relay retention from final delivery.
+- Courier relay now has per-origin fairness quotas and signed receipts surfaced as a `relayed` state so senders can distinguish relay retention from final delivery.
 - Diagnostics are designed for GitHub issues and field testing, with report comparison scripts for asymmetric discovery or delivery bugs.
 - The repository has launch artifacts that make trust review easier: threat model, protocol docs, release guide, verification guide, CI, generated manifests, checksums, and a field-test report template.
 
@@ -63,7 +63,7 @@ The next high-impact parity targets are:
 
 - Add Noise-style interactive sessions for online DMs.
 - Expand public-room history sync with compact set reconciliation and longer retention controls.
-- Add richer courier expiry tuning, relay receipt surfacing, and per-peer quota controls.
+- Add richer courier expiry tuning, receipt details, and per-peer quota controls.
 - Add Wi-Fi Aware for supported Android devices.
 - Explore optional BLE low-bandwidth discovery while keeping Wi-Fi as the high-throughput data path.
 - Add signed public APK release automation after field testing.

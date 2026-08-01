@@ -21,7 +21,11 @@ class BackgroundAlertTracker {
     fun consumeMessageAlert(messages: List<ChatMessage>, shouldNotify: Boolean): BackgroundAlert? {
         val candidates = messages
             .filter { message -> !message.isLocal && message.id !in seenMessageIds }
-            .filterNot { message -> message.state == DeliveryState.Pending || message.state == DeliveryState.Sent }
+            .filterNot { message ->
+                message.state == DeliveryState.Pending ||
+                    message.state == DeliveryState.Sent ||
+                    message.state == DeliveryState.Relayed
+            }
         rememberMessages(messages)
         if (!shouldNotify || candidates.isEmpty()) return null
 

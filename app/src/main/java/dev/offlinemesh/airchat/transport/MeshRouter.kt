@@ -810,7 +810,11 @@ class MeshRouter(
                 candidate.senderId == localPeerId &&
                 isAckAuthorized(candidate, packet.originId)
         } ?: return
-        if (message.state == DeliveryState.Pending || message.state == DeliveryState.Sent) {
+        if (
+            message.state == DeliveryState.Pending ||
+            message.state == DeliveryState.Sent ||
+            message.state == DeliveryState.Relayed
+        ) {
             updateMessageState(message.id, DeliveryState.Received)
             logEvent("ack", "received for ${ack.packetId.take(8)} from ${packet.originId.take(6)}")
         }
@@ -830,6 +834,9 @@ class MeshRouter(
                 candidate.senderId == localPeerId &&
                 candidate.channel == packet.channel
         } ?: return
+        if (message.state == DeliveryState.Pending || message.state == DeliveryState.Sent) {
+            updateMessageState(message.id, DeliveryState.Relayed)
+        }
         logEvent(
             "courier",
             "receipt for ${message.id.take(8)} via ${packet.originId.take(6)} ttl ${receipt.remainingTtl}"

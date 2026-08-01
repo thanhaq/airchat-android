@@ -38,13 +38,13 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 - QR safety-number cards and private-room invite cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
-- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls, per-origin quota controls, and relay receipts.
+- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls, per-origin quota controls, and user-visible relay receipts.
 - Public-room history sync that lets peers exchange recent signed public chat packets after reconnect without replaying private rooms, DMs, or files.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - Multi-room switcher with unread counts, file counts, private-room markers, persistent pinned favorites, and manual room reorder controls.
 - In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, a privacy-preserving recent event log, and share action for field testing.
 - Compose UI with peer list, room strip, channel composer, DM mode, status chips, and verified/unverified message state.
-- Unit tests for packet serialization, direct-message crypto, private-room crypto, room summaries, conversation filtering, packet guard, file chunking, ACK receipts, courier relay, and dedup behavior.
+- Unit tests for packet serialization, direct-message crypto, private-room crypto, room summaries, conversation filtering, packet guard, file chunking, ACK receipts, courier receipt state, courier relay, and dedup behavior.
 
 ## Why Wi-Fi instead of Bluetooth
 
@@ -231,7 +231,7 @@ Next security milestones:
 ## Roadmap
 
 - Camera scan-to-verify for QR safety cards.
-- Courier per-peer quotas, relay receipts, and richer expiry tuning.
+- Courier per-peer quota controls, richer receipt details, and expiry tuning.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.
 - F-Droid ready flavor without proprietary dependencies.

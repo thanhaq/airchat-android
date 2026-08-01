@@ -145,6 +145,8 @@ When a relay verifies a packet, fails to broadcast it onward, and retains it in 
 
 A courier receipt is not a delivery ACK. It only means one relay accepted responsibility to retry the packet until the receipt's expiry window or until the user clears/disables courier relay. `CourierReceipt` packets are not relayed, acknowledged, or courier-stored.
 
+When the sender receives a verified courier receipt for a local message, AirChat may show that local message as `relayed`. A later valid `Ack` from a recipient still upgrades that message to `received`.
+
 ## Public history sync
 
 When a transport reports a peer, AirChat may send a signed `HistoryRequest` packet directly to that peer. The request includes a bounded list of public packet ids already visible locally, an optional list of public channels, and a requested maximum packet count.
