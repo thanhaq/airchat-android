@@ -98,6 +98,7 @@ import dev.offlinemesh.airchat.core.DiagnosticsSnapshot
 import dev.offlinemesh.airchat.core.ReceivedFilePreview
 import dev.offlinemesh.airchat.core.ReceivedFilePreviewKind
 import dev.offlinemesh.airchat.core.ReceivedFilePreviewer
+import dev.offlinemesh.airchat.core.SafetyShareFormatter
 import dev.offlinemesh.airchat.crypto.IdentityKeySecurity
 import dev.offlinemesh.airchat.crypto.QrCodeEncoder
 import dev.offlinemesh.airchat.crypto.QrCodeMatrix
@@ -352,6 +353,20 @@ fun AirChatApp(container: AppContainer) {
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
+                    safetyPayload?.let { payload ->
+                        TextButton(
+                            onClick = {
+                                sharePeerSafety(
+                                    context = context,
+                                    peer = peer,
+                                    safetyNumber = safetyNumber,
+                                    safetyPayload = payload
+                                )
+                            }
+                        ) {
+                            Text("Share safety card")
+                        }
+                    }
                     Text(
                         text = "The QR contains only the safety fingerprint.",
                         style = MaterialTheme.typography.bodySmall,
@@ -1309,6 +1324,30 @@ private fun shareDiagnostics(context: Context, report: DiagnosticsDialogReport) 
     }
     context.startActivity(
         Intent.createChooser(shareIntent, "Share diagnostics")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
+}
+
+private fun sharePeerSafety(
+    context: Context,
+    peer: Peer,
+    safetyNumber: String,
+    safetyPayload: String
+) {
+    val shareText = SafetyShareFormatter.format(
+        peerName = peer.name,
+        peerId = peer.id,
+        safetyNumber = safetyNumber,
+        safetyPayload = safetyPayload
+    )
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "AirChat safety card for ${peer.name}")
+        putExtra(Intent.EXTRA_TEXT, shareText)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(
+        Intent.createChooser(shareIntent, "Share safety card")
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
 }

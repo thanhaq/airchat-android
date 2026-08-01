@@ -36,7 +36,7 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
 - Persistent peer blocklist with UI actions and `/block` / `/unblock` commands.
-- QR safety-number cards and private-room invite cards for out-of-band verification without exposing passphrases.
+- QR and shareable safety-number cards plus private-room invite cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, inline previews for common file types, save/share actions, and SHA-256 verification.
 - Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls, per-origin quota controls, and user-visible relay receipts.
@@ -144,8 +144,9 @@ For peer verification:
 
 1. Tap `Trust` on a peer with a public key.
 2. Compare the safety number or QR safety card out of band.
-3. Confirm the dialog only after the code matches.
-4. If the same peer id later advertises a different public key, AirChat marks it `Key changed` and blocks direct sends until you explicitly trust the new key.
+3. Use `Share safety card` when the other device needs a text payload instead of the QR card.
+4. Confirm the dialog only after the code matches.
+5. If the same peer id later advertises a different public key, AirChat marks it `Key changed` and blocks direct sends until you explicitly trust the new key.
 
 To block a peer, tap the block icon in its peer row or type `/block peer`. Blocked peers stay visible when discovered so they can be unblocked, but AirChat drops their packets before display, ACK, relay, or courier storage.
 

@@ -18,6 +18,7 @@
 - Added PacketGuard validation for TTL, payload size, route length, clock skew, and per-origin rate limiting.
 - Added conversation filtering and safety-number fingerprints in peer rows.
 - Added QR safety-number and private-room code cards for out-of-band verification.
+- Added shareable peer safety-card text for out-of-band key checks when QR scanning is not available.
 - Added encrypted trust store, peer trust confirmation, and key-change blocking for direct sends.
 - Added encrypted peer blocklist with UI actions, slash commands, diagnostics, and inbound packet drops.
 - Added public-channel and encrypted direct file transfer with Android picker, manifest/chunk packets, persistent encrypted inbox, and SHA-256 reassembly checks.

@@ -44,7 +44,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Public-room history sync imports only recent signed public `Chat` packets after verifying the original origin signature; it does not sync DMs, private-room ciphertext, file manifests, or file chunks.
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
-- QR safety cards and QR private-room invite cards make out-of-band comparison easier without transmitting passphrases or private keys.
+- QR/shareable safety cards and QR private-room invite cards make out-of-band comparison easier without transmitting passphrases or private keys.
 - Trusted peer records are encrypted at rest; if a trusted peer id presents a different public key, direct sends are blocked until the user trusts the new key.
 - Blocked peer ids are encrypted at rest and excluded from Android backup; blocked packets are dropped before display, ACK, relay, or courier storage.
 - Background mesh alerts avoid message bodies and file names, showing only sender and conversation labels.

@@ -65,14 +65,15 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 
 1. On phone A, tap `Trust` for phone B.
 2. Confirm the trust dialog shows both the safety number and a QR safety card.
-3. Compare the safety number or QR content with phone B before confirming.
-4. Tap `DM` and send a private message.
-5. Confirm the message appears only in the direct conversation.
-6. Confirm the sender changes the DM from sent to received only after the recipient receives it.
-7. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
-8. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
-9. Type `/block` and confirm phone B is listed.
-10. Type `/unblock <peer>` and confirm DMs can be sent again.
+3. Tap `Share safety card` and confirm the shared text includes the peer label, safety number, and `AIRCHAT-SAFETY` payload without raw public or private key material.
+4. Compare the safety number, QR content, or shared payload with phone B before confirming.
+5. Tap `DM` and send a private message.
+6. Confirm the message appears only in the direct conversation.
+7. Confirm the sender changes the DM from sent to received only after the recipient receives it.
+8. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
+9. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
+10. Type `/block` and confirm phone B is listed.
+11. Type `/unblock <peer>` and confirm DMs can be sent again.
 
 ## Private room test
 

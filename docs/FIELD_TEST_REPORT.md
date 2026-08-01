@@ -42,6 +42,7 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Private room key rotation |  |  |
 | Safety number compare |  |  |
 | QR safety card |  |  |
+| Safety card share text |  |  |
 | Peer block/unblock |  |  |
 | Encrypted DM |  |  |
 | ACK changes sender state to received |  |  |

@@ -27,7 +27,7 @@ Use this script for a short README GIF, release video, or social post.
 14. Type `/who` and show the local peer notice.
 15. Tap the block icon on a peer row, show `Blocked`, then unblock it.
 16. Open the peer row and show the safety number.
-17. Tap `Trust`, show the QR safety card, compare the safety number, and confirm.
+17. Tap `Trust`, show the QR safety card, share the safety text payload, compare the safety number, and confirm.
 18. Type `/msg <peer> encrypted hello` to send a private message.
 19. Attach a small text or image file in DM mode.
 20. Show the receiver's file strip with inline preview plus save and share actions.

@@ -31,7 +31,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 | Public rooms | Mesh room plus geohash location channels over Nostr. | Named local rooms over Wi-Fi mesh, with unread counts, pinned rooms, and manual ordering. |
 | Private rooms | Private messages are the main encrypted path. | Passphrase-locked group rooms with verification codes, QR invite cards, encrypted text, and encrypted file packets. |
 | Files/media | Fragmented media in the mesh, with caps and user acceptance. | Public, private-room, and DM file transfer up to 10 MB, chunking, SHA-256 verification, encrypted inbox persistence, inline previews, save/share actions. |
-| Identity verification | QR verification binds nickname to fingerprint. | Safety-number compare, QR safety cards, trust records, and key-change protection. |
+| Identity verification | QR verification binds nickname to fingerprint. | Safety-number compare, QR/shareable safety cards, trust records, and key-change protection. |
 | Panic wipe | Clears local identity and retained delivery state. | Clears local history, outbox, peer cache, identity data on disk, and rotates in-memory identity. |
 | Power behavior | Adaptive battery optimizations. | Visible normal/conserve/critical power policy, relay TTL clamp, courier flush spacing, and critical-battery courier storage pause. |
 | Diagnostics | Protocol whitepaper and build verification guidance. | In-app diagnostics report, privacy-preserving recent event log, structured JSON export, compare scripts, release manifest, launch status, and field-test template. |
