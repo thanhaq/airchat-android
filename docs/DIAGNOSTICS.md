@@ -39,6 +39,16 @@ The compare scripts accept the original text report, the shared report with embe
 - The last recent events from each device.
 - Suggested checks for common mismatches.
 
+## Capture Logcat
+
+AirChat mirrors the same privacy-preserving diagnostic events to Android Logcat with the `AirChat` tag. Use this when a transport failure happens before you can open the diagnostics dialog, or when socket failures need exact timing.
+
+```bash
+adb logcat -s AirChat
+```
+
+For issue reports, include 30-60 seconds around the failure. The log line format is `category: detail`, and transport/socket failures are emitted as warnings or errors without message bodies, private-room passphrases, or file names.
+
 ## Reading The Output
 
 - `App` or `Protocol` differs: install the same APK on every device.

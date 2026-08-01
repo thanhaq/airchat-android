@@ -5,6 +5,7 @@ package dev.offlinemesh.airchat.transport.lan
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import dev.offlinemesh.airchat.core.AirChatLog
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerConnectionState
@@ -62,12 +63,24 @@ class LanTransport(
     override suspend fun start() = withContext(Dispatchers.IO) {
         if (serverSocket != null) return@withContext
         statusState.value = TransportStatus(NAME, TransportState.Starting, "Opening local socket")
-        serverSocket = ServerSocket(0).also { socket ->
-            acceptJob = scope.launch(Dispatchers.IO) { acceptLoop(socket) }
-            registerService(socket.localPort)
-            discoverServices()
+        runCatching {
+            serverSocket = ServerSocket(0).also { socket ->
+                acceptJob = scope.launch(Dispatchers.IO) { acceptLoop(socket) }
+                registerService(socket.localPort)
+                discoverServices()
+            }
+            statusState.value = TransportStatus(NAME, TransportState.Ready, "Advertising on local Wi-Fi")
+        }.onFailure { error ->
+            runCatching { serverSocket?.close() }
+            acceptJob?.cancel()
+            serverSocket = null
+            acceptJob = null
+            statusState.value = TransportStatus(
+                NAME,
+                TransportState.Failed,
+                "LAN socket open failed: ${AirChatLog.throwableLabel(error)}"
+            )
         }
-        statusState.value = TransportStatus(NAME, TransportState.Ready, "Advertising on local Wi-Fi")
     }
 
     override suspend fun stop() = withContext(Dispatchers.IO) {
@@ -178,7 +191,17 @@ class LanTransport(
 
     private suspend fun acceptLoop(serverSocket: ServerSocket) {
         while (!serverSocket.isClosed) {
-            val socket = runCatching { serverSocket.accept() }.getOrNull() ?: continue
+            val socket = runCatching { serverSocket.accept() }
+                .onFailure { error ->
+                    if (!serverSocket.isClosed) {
+                        statusState.value = TransportStatus(
+                            NAME,
+                            TransportState.Degraded,
+                            "LAN accept failed: ${AirChatLog.throwableLabel(error)}"
+                        )
+                    }
+                }
+                .getOrNull() ?: continue
             scope.launch(Dispatchers.IO) { readSocket(socket) }
         }
     }
@@ -193,35 +216,49 @@ class LanTransport(
                     writer.flush()
                 }
             }
+        }.onFailure { error ->
+            statusState.value = TransportStatus(
+                NAME,
+                TransportState.Degraded,
+                "LAN send failed to ${endpoint.peerId.take(6)}: ${AirChatLog.throwableLabel(error)}"
+            )
         }.isSuccess
     }
 
     private suspend fun readSocket(socket: Socket) = withContext(Dispatchers.IO) {
-        socket.use {
-            val reader = BufferedReader(InputStreamReader(it.getInputStream(), Charsets.UTF_8))
-            reader.lineSequence().forEach { line ->
-                val packet = MeshPacketCodec.decode(line) ?: return@forEach
-                val remote = Peer(
-                    id = packet.originId,
-                    name = packet.originName,
-                    transport = TransportKind.Lan,
-                    publicKey = packet.originPublicKey,
-                    address = it.inetAddress.hostAddress,
-                    connectionState = PeerConnectionState.Connected
-                )
-                peerEndpoints.putIfAbsent(
-                    packet.originId,
-                    Endpoint(
-                        peerId = packet.originId,
+        runCatching {
+            socket.use {
+                val reader = BufferedReader(InputStreamReader(it.getInputStream(), Charsets.UTF_8))
+                reader.lineSequence().forEach { line ->
+                    val packet = MeshPacketCodec.decode(line) ?: return@forEach
+                    val remote = Peer(
+                        id = packet.originId,
                         name = packet.originName,
+                        transport = TransportKind.Lan,
                         publicKey = packet.originPublicKey,
-                        address = it.inetAddress,
-                        port = DEFAULT_PORT_HINT
+                        address = it.inetAddress.hostAddress,
+                        connectionState = PeerConnectionState.Connected
                     )
-                )
-                publishPeers()
-                eventFlow.tryEmit(TransportEvent.PacketReceived(NAME, packet, remote))
+                    peerEndpoints.putIfAbsent(
+                        packet.originId,
+                        Endpoint(
+                            peerId = packet.originId,
+                            name = packet.originName,
+                            publicKey = packet.originPublicKey,
+                            address = it.inetAddress,
+                            port = DEFAULT_PORT_HINT
+                        )
+                    )
+                    publishPeers()
+                    eventFlow.tryEmit(TransportEvent.PacketReceived(NAME, packet, remote))
+                }
             }
+        }.onFailure { error ->
+            statusState.value = TransportStatus(
+                NAME,
+                TransportState.Degraded,
+                "LAN read failed: ${AirChatLog.throwableLabel(error)}"
+            )
         }
     }
 

@@ -15,6 +15,7 @@ import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import dev.offlinemesh.airchat.core.AirChatLog
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerConnectionState
@@ -189,8 +190,12 @@ class WifiDirectTransport(
                         connectedSockets["group-owner"] = socket
                         readSocket(socket)
                     }
-                }.onFailure {
-                    statusState.value = TransportStatus(NAME, TransportState.Degraded, "Group owner socket unavailable")
+                }.onFailure { error ->
+                    statusState.value = TransportStatus(
+                        NAME,
+                        TransportState.Degraded,
+                        "Group owner socket unavailable: ${AirChatLog.throwableLabel(error)}"
+                    )
                 }
             }
         }
@@ -206,29 +211,41 @@ class WifiDirectTransport(
                     sendHello(socket)
                     scope.launch(Dispatchers.IO) { readSocket(socket) }
                 }
-            }.onFailure {
-                statusState.value = TransportStatus(NAME, TransportState.Degraded, "Port $PORT unavailable")
+            }.onFailure { error ->
+                statusState.value = TransportStatus(
+                    NAME,
+                    TransportState.Degraded,
+                    "Port $PORT unavailable: ${AirChatLog.throwableLabel(error)}"
+                )
             }
         }
     }
 
     private suspend fun readSocket(socket: Socket) = withContext(Dispatchers.IO) {
-        socket.use {
-            val reader = BufferedReader(InputStreamReader(it.getInputStream(), Charsets.UTF_8))
-            reader.lineSequence().forEach { line ->
-                val packet = MeshPacketCodec.decode(line) ?: return@forEach
-                connectedSockets[packet.originId] = socket
-                val remote = Peer(
-                    id = packet.originId,
-                    name = packet.originName,
-                    transport = TransportKind.WifiDirect,
-                    publicKey = packet.originPublicKey,
-                    address = socket.inetAddress.hostAddress,
-                    connectionState = PeerConnectionState.Connected
-                )
-                upsertPeer(remote)
-                eventFlow.tryEmit(TransportEvent.PacketReceived(NAME, packet, remote))
+        runCatching {
+            socket.use {
+                val reader = BufferedReader(InputStreamReader(it.getInputStream(), Charsets.UTF_8))
+                reader.lineSequence().forEach { line ->
+                    val packet = MeshPacketCodec.decode(line) ?: return@forEach
+                    connectedSockets[packet.originId] = socket
+                    val remote = Peer(
+                        id = packet.originId,
+                        name = packet.originName,
+                        transport = TransportKind.WifiDirect,
+                        publicKey = packet.originPublicKey,
+                        address = socket.inetAddress.hostAddress,
+                        connectionState = PeerConnectionState.Connected
+                    )
+                    upsertPeer(remote)
+                    eventFlow.tryEmit(TransportEvent.PacketReceived(NAME, packet, remote))
+                }
             }
+        }.onFailure { error ->
+            statusState.value = TransportStatus(
+                NAME,
+                TransportState.Degraded,
+                "Wi-Fi Direct read failed: ${AirChatLog.throwableLabel(error)}"
+            )
         }
     }
 
@@ -239,6 +256,12 @@ class WifiDirectTransport(
                 write("\n")
                 flush()
             }
+        }.onFailure { error ->
+            statusState.value = TransportStatus(
+                NAME,
+                TransportState.Degraded,
+                "Wi-Fi Direct send failed: ${AirChatLog.throwableLabel(error)}"
+            )
         }.isSuccess
     }
 

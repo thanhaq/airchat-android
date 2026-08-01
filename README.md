@@ -43,7 +43,7 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 - Public-room history sync that lets peers exchange recent signed public chat packets after reconnect without replaying private rooms, DMs, or files.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - Multi-room switcher with unread counts, file counts, private-room markers, persistent pinned favorites, and manual room reorder controls.
-- In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, a privacy-preserving recent event log, structured JSON export, and share action for field testing.
+- In-app diagnostics report with identity-key backing, transport states, peer/room counts, unread-room counts, a privacy-preserving recent event log, structured JSON export, Logcat mirroring, and share action for field testing.
 - Compose UI with peer list, room strip, channel composer, DM mode, status chips, and verified/unverified message state.
 - Unit tests for packet serialization, direct-message crypto, private-room crypto, room summaries, conversation filtering, packet guard, file chunking, ACK receipts, courier receipt state, courier relay, and dedup behavior.
 
@@ -180,6 +180,7 @@ For diagnostics:
 2. Check identity-key backing, Android version, private-room code/strength, visible peer/room count, unread-room count, transport states, and recent diagnostic events.
 3. Use `Share` when attaching a field-test report or GitHub issue.
 4. Compare two device reports or structured JSON exports with `scripts/compare-diagnostics.ps1` when debugging asymmetric discovery or delivery.
+5. Capture matching Logcat snippets with `adb logcat -s AirChat` when diagnosing discovery, socket, relay, or import failures on physical devices.
 
 ## Build from terminal
 

@@ -6,6 +6,7 @@ import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.crypto.MeshIdentity
 import dev.offlinemesh.airchat.crypto.RoomCrypto
 import dev.offlinemesh.airchat.crypto.RoomKey
+import dev.offlinemesh.airchat.core.AirChatLog
 import dev.offlinemesh.airchat.model.ChatMessage
 import dev.offlinemesh.airchat.model.CourierPacket
 import dev.offlinemesh.airchat.model.CourierPolicy
@@ -1508,6 +1509,7 @@ class MeshRouter(
             detail = sanitized
         )
         diagnosticEvents.value = (diagnosticEvents.value + event).takeLast(MAX_DIAGNOSTIC_EVENTS)
+        AirChatLog.diagnostic(category = category, detail = sanitized)
     }
 
     private fun channelLabel(channel: String): String =

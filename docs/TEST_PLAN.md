@@ -158,9 +158,10 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
 6. Tap `Share` and confirm the Android share sheet opens with readable diagnostics plus a `Structured JSON` block.
-7. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
-8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
-9. Save the fenced JSON block from each report as `.json` files and confirm the same compare command accepts the JSON-only files.
+7. Run `adb logcat -s AirChat` while reproducing discovery, socket, relay, and trust-import failures; confirm the lines mirror diagnostic categories without message bodies, private-room passphrases, or file names.
+8. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
+9. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
+10. Save the fenced JSON block from each report as `.json` files and confirm the same compare command accepts the JSON-only files.
 
 ## Release sign-off
 

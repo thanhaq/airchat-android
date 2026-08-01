@@ -63,6 +63,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Private-room invite cards include the room name and room-code fingerprint, but not the room passphrase.
 - Private-room passphrases are memory-only; users must re-enter them after process restart and share them out of band.
 - Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
+- The same diagnostics are mirrored to Logcat under the `AirChat` tag for field debugging; Logcat can reveal the same metadata to anyone with debugging access or a captured bugreport.
 - System notifications can reveal that AirChat traffic arrived, plus sender names and room labels, to anyone who can see device notifications.
 - Pinned and known room preferences can reveal local workflow patterns if the device is unlocked.
 - Public history sync can reveal recent public room names and public message timing to peers that were not present when the messages were first sent.

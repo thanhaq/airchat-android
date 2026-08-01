@@ -34,7 +34,7 @@ AirChat should not pretend to be a drop-in BitChat clone. The stronger public st
 | Identity verification | QR verification binds nickname to fingerprint. | Safety-number compare, QR/shareable safety cards, signed trust backup export/import, trust records, and key-change protection. |
 | Panic wipe | Clears local identity and retained delivery state. | Clears local history, outbox, peer cache, identity data on disk, and rotates in-memory identity. |
 | Power behavior | Adaptive battery optimizations. | Visible normal/conserve/critical power policy, relay TTL clamp, courier flush spacing, and critical-battery courier storage pause. |
-| Diagnostics | Protocol whitepaper and build verification guidance. | In-app diagnostics report, privacy-preserving recent event log, structured JSON export, compare scripts, release manifest, launch status, and field-test template. |
+| Diagnostics | Protocol whitepaper and build verification guidance. | In-app diagnostics report, privacy-preserving recent event log, Logcat mirroring, structured JSON export, compare scripts, release manifest, launch status, and field-test template. |
 | Public release state | App Store/Play Store listed by upstream README. | Public source and draft v0.1.0 debug-test release candidate; signed public APK promotion waits for field testing. |
 
 ## Where AirChat Is Already Competitive
