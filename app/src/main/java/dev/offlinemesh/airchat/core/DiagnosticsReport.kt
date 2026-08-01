@@ -33,6 +33,7 @@ data class DiagnosticsSnapshot(
     val courierQueueSize: Int,
     val courierEnabled: Boolean,
     val courierRetentionMinutes: Int,
+    val courierMaxPacketsPerOrigin: Int,
     val transportStatuses: List<TransportStatus>,
     val diagnosticEvents: List<DiagnosticEvent>
 )
@@ -63,6 +64,7 @@ object DiagnosticsReportFormatter {
         appendLine("Courier queue: ${snapshot.courierQueueSize}")
         appendLine("Courier relay: ${if (snapshot.courierEnabled) "on" else "off"}")
         appendLine("Courier retention: ${snapshot.courierRetentionMinutes}m")
+        appendLine("Courier quota: ${snapshot.courierMaxPacketsPerOrigin} per origin")
         appendLine("Transports:")
         if (snapshot.transportStatuses.isEmpty()) {
             appendLine("- none")

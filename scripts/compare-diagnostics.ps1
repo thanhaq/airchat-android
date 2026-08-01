@@ -247,6 +247,7 @@ $summaryFields = @(
     "Courier queue"
     "Courier relay"
     "Courier retention"
+    "Courier quota"
 )
 
 $out = New-Object System.Collections.Generic.List[string]

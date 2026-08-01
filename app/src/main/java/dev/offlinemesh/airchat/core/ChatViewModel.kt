@@ -37,6 +37,7 @@ data class ChatUiState(
     val courierQueueSize: Int,
     val courierEnabled: Boolean,
     val courierRetentionMinutes: Int,
+    val courierMaxPacketsPerOrigin: Int,
     val blockedPeerIds: Set<String>,
     val blockedPeerCount: Int,
     val pinnedRoomCount: Int,
@@ -213,6 +214,7 @@ class ChatViewModel(
             courierQueueSize = routerState.courierQueueSize,
             courierEnabled = routerState.courierPolicy.enabled,
             courierRetentionMinutes = routerState.courierPolicy.retentionMinutes,
+            courierMaxPacketsPerOrigin = routerState.courierPolicy.maxPacketsPerOrigin,
             blockedPeerIds = routerState.blockedPeerIds,
             blockedPeerCount = routerState.blockedPeerIds.size,
             pinnedRoomCount = rooms.count { it.isPinned },
@@ -239,6 +241,7 @@ class ChatViewModel(
             courierQueueSize = 0,
             courierEnabled = CourierPolicy.Default.enabled,
             courierRetentionMinutes = CourierPolicy.Default.retentionMinutes,
+            courierMaxPacketsPerOrigin = CourierPolicy.Default.maxPacketsPerOrigin,
             blockedPeerIds = emptySet(),
             blockedPeerCount = 0,
             pinnedRoomCount = 0,
@@ -528,7 +531,7 @@ class ChatViewModel(
             CourierPolicy(
                 enabled = enabled,
                 retentionMinutes = current.courierRetentionMinutes,
-                maxPacketsPerOrigin = router.courierPolicy.value.maxPacketsPerOrigin
+                maxPacketsPerOrigin = current.courierMaxPacketsPerOrigin
             )
         )
     }
@@ -539,7 +542,18 @@ class ChatViewModel(
             CourierPolicy(
                 enabled = current.courierEnabled,
                 retentionMinutes = minutes,
-                maxPacketsPerOrigin = router.courierPolicy.value.maxPacketsPerOrigin
+                maxPacketsPerOrigin = current.courierMaxPacketsPerOrigin
+            )
+        )
+    }
+
+    fun setCourierMaxPacketsPerOrigin(maxPackets: Int) {
+        val current = uiState.value
+        router.updateCourierPolicy(
+            CourierPolicy(
+                enabled = current.courierEnabled,
+                retentionMinutes = current.courierRetentionMinutes,
+                maxPacketsPerOrigin = maxPackets
             )
         )
     }

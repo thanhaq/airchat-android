@@ -38,7 +38,7 @@ AirChat is not protocol-compatible with BitChat. It is an Android Wi-Fi take on 
 - QR safety-number cards and private-room invite cards for out-of-band verification without exposing passphrases.
 - PacketGuard checks for payload size, TTL, route length, timestamp skew, and per-origin rate limits.
 - Public-channel and encrypted direct file transfer with Android picker, chunking, persistent encrypted inbox, save/share actions, and SHA-256 verification.
-- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with per-origin quotas, relay receipts, and user-visible retention controls.
+- Message deduplication, TTL-limited relay, signed delivery receipts, and bounded encrypted courier relay with user-visible retention controls, per-origin quota controls, and relay receipts.
 - Public-room history sync that lets peers exchange recent signed public chat packets after reconnect without replaying private rooms, DMs, or files.
 - IRC-style slash commands for room switching, direct messages, action messages, peer lists, and local help.
 - Multi-room switcher with unread counts, file counts, private-room markers, persistent pinned favorites, and manual room reorder controls.
@@ -120,7 +120,8 @@ For courier relay:
 1. Tap the `Courier` status chip.
 2. Toggle store-and-forward relay on or off.
 3. Pick a 5, 15, or 60 minute retention window.
-4. Clear the encrypted courier queue manually before sensitive handoff tests.
+4. Pick a per-origin quota so one peer cannot monopolize local courier storage.
+5. Clear the encrypted courier queue manually before sensitive handoff tests.
 
 Composer commands:
 

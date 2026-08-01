@@ -146,13 +146,13 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, background mesh state, power mode, battery state, visible peers, blocked peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, transport states, and recent events.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, background mesh state, power mode, battery state, visible peers, blocked peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, courier quota, transport states, and recent events.
 3. Confirm the report includes pinned room count after pinning a room.
 4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
 6. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 7. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
-8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue counts, and recent event categories.
+8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue/quota differences, and recent event categories.
 
 ## Release sign-off
 

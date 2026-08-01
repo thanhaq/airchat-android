@@ -237,8 +237,10 @@ fun AirChatApp(container: AppContainer) {
             queueSize = state.courierQueueSize,
             enabled = state.courierEnabled,
             retentionMinutes = state.courierRetentionMinutes,
+            maxPacketsPerOrigin = state.courierMaxPacketsPerOrigin,
             onEnabledChanged = viewModel::setCourierEnabled,
             onRetentionChanged = viewModel::setCourierRetentionMinutes,
+            onMaxPacketsPerOriginChanged = viewModel::setCourierMaxPacketsPerOrigin,
             onClearQueue = viewModel::clearCourierQueue,
             onDismiss = { courierSettingsOpen = false }
         )
@@ -516,8 +518,10 @@ private fun CourierSettingsDialog(
     queueSize: Int,
     enabled: Boolean,
     retentionMinutes: Int,
+    maxPacketsPerOrigin: Int,
     onEnabledChanged: (Boolean) -> Unit,
     onRetentionChanged: (Int) -> Unit,
+    onMaxPacketsPerOriginChanged: (Int) -> Unit,
     onClearQueue: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -574,6 +578,16 @@ private fun CourierSettingsDialog(
                             selected = option == retentionMinutes,
                             onClick = { onRetentionChanged(option) },
                             label = { Text("${option}m") }
+                        )
+                    }
+                }
+                Text("Per-origin quota", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    COURIER_ORIGIN_QUOTA_OPTIONS.forEach { option ->
+                        FilterChip(
+                            selected = option == maxPacketsPerOrigin,
+                            onClick = { onMaxPacketsPerOriginChanged(option) },
+                            label = { Text("$option") }
                         )
                     }
                 }
@@ -1171,6 +1185,7 @@ private fun diagnosticsSnapshot(
         courierQueueSize = state.courierQueueSize,
         courierEnabled = state.courierEnabled,
         courierRetentionMinutes = state.courierRetentionMinutes,
+        courierMaxPacketsPerOrigin = state.courierMaxPacketsPerOrigin,
         transportStatuses = state.transportStatuses,
         diagnosticEvents = state.diagnosticEvents
     )
@@ -1228,4 +1243,5 @@ private fun shareRoomInvite(context: Context, channel: String, code: String) {
 private const val MAX_PICKED_FILE_BYTES = 10 * 1024 * 1024
 private const val MAX_ROOM_CHIPS = 8
 private val COURIER_RETENTION_OPTIONS = listOf(5, 15, 60)
+private val COURIER_ORIGIN_QUOTA_OPTIONS = listOf(8, 16, 32, 64)
 private const val SHARED_RECEIVED_DIR = "shared-received"

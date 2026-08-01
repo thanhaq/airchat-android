@@ -32,7 +32,7 @@ Use this script for a short README GIF, release video, or social post.
 19. Attach a small text file in DM mode.
 20. Show the receiver's file strip with save and share actions.
 21. Tap the `Courier` chip and show relay retention plus clear queue controls.
-22. Open diagnostics and show transport/key/power/courier status plus recent events.
+22. Open diagnostics and show transport/key/power/courier status, courier quota, plus recent events.
 23. Enable background mesh mode and show the persistent notification plus a generic new-message alert.
 
 ## Voiceover beats

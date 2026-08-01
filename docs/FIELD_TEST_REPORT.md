@@ -51,6 +51,7 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Received-file persistence after restart |  |  |
 | Courier queue persists after restart |  |  |
 | Courier retention controls |  |  |
+| Courier per-origin quota controls |  |  |
 | Courier relay disable/clear |  |  |
 | Battery-aware power chip |  |  |
 | Conserve mode diagnostics |  |  |

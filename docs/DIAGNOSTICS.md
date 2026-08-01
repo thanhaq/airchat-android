@@ -1,6 +1,6 @@
 # Diagnostics Workflow
 
-AirChat diagnostics are designed for field tests where two or three physical Android devices are on the same offline Wi-Fi or Wi-Fi Direct mesh. The report captures app version, protocol version, Android version, peer identity, private-room state, background mesh state, power mode, battery state, transport states, room counts, pinned-room count, blocked-peer count, courier queue size, courier relay mode, courier retention, and a short recent event timeline.
+AirChat diagnostics are designed for field tests where two or three physical Android devices are on the same offline Wi-Fi or Wi-Fi Direct mesh. The report captures app version, protocol version, Android version, peer identity, private-room state, background mesh state, power mode, battery state, transport states, room counts, pinned-room count, blocked-peer count, courier queue size, courier relay mode, courier retention, courier per-origin quota, and a short recent event timeline.
 
 ## Capture Reports
 
@@ -32,7 +32,7 @@ bash ./scripts/compare-diagnostics.sh ./field-tests/device-a.txt ./field-tests/d
 
 The generated Markdown report includes:
 
-- App, protocol, Android, identity-key, conversation, room, unread, blocked-peer, file, power, courier counters, and courier policy side by side.
+- App, protocol, Android, identity-key, conversation, room, unread, blocked-peer, file, power, courier counters, courier quota, and courier policy side by side.
 - Pinned-room counts for checking whether room preferences persisted.
 - Transport state differences for LAN and Wi-Fi Direct.
 - Recent diagnostic event categories from both devices.
