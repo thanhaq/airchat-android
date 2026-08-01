@@ -71,6 +71,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -123,17 +124,32 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+data class TrustBackupImportRequest(
+    val id: Long,
+    val text: String? = null,
+    val uri: Uri? = null
+)
+
 @Composable
-fun AirChatApp(container: AppContainer) {
+fun AirChatApp(
+    container: AppContainer,
+    incomingTrustBackup: StateFlow<TrustBackupImportRequest?>? = null,
+    onTrustBackupImportConsumed: (Long) -> Unit = {}
+) {
     val viewModel = remember { ChatViewModel(container.router, container.roomPreferencesStore) }
     DisposableEffect(container) {
         container.startUiSession()
         onDispose { container.stopUiSession() }
     }
     val state by viewModel.uiState.collectAsState()
+    val incomingTrustBackupRequest by (
+        incomingTrustBackup?.collectAsState()
+            ?: remember { mutableStateOf<TrustBackupImportRequest?>(null) }
+        )
     val backgroundMeshEnabled by container.backgroundMeshEnabled.collectAsState()
     val backgroundPowerStatus by container.backgroundPowerStatus.collectAsState()
     var confirmWipe by remember { mutableStateOf(false) }
@@ -188,6 +204,25 @@ fun AirChatApp(container: AppContainer) {
                 )
             }
         }
+    }
+    LaunchedEffect(incomingTrustBackupRequest?.id) {
+        val request = incomingTrustBackupRequest ?: return@LaunchedEffect
+        val result = withContext(Dispatchers.IO) {
+            readTrustBackupImportReview(
+                context = context,
+                request = request,
+                localPeerId = state.localPeerId,
+                existingPeers = container.peerTrustStore.loadTrustedPeers()
+            )
+        }
+        when (result) {
+            is TrustBackupReadResult.Ready -> trustBackupReview = result.review
+            is TrustBackupReadResult.Error -> trustBackupNotice = TrustBackupImportNotice(
+                title = "Trust backup rejected",
+                body = result.message
+            )
+        }
+        onTrustBackupImportConsumed(request.id)
     }
     AirChatScreen(
         state = state,
@@ -1338,8 +1373,36 @@ private fun readTrustBackupImportReview(
 ): TrustBackupReadResult {
     val raw = readTextDocument(context, uri, MAX_TRUST_BACKUP_BYTES)
         ?: return TrustBackupReadResult.Error("Could not read the selected backup, or it is larger than 1 MB.")
+    return readTrustBackupImportReview(
+        raw = raw,
+        localPeerId = localPeerId,
+        existingPeers = existingPeers
+    )
+}
+
+private fun readTrustBackupImportReview(
+    context: Context,
+    request: TrustBackupImportRequest,
+    localPeerId: String,
+    existingPeers: Map<String, TrustedPeer>
+): TrustBackupReadResult {
+    val raw = request.text?.takeIf { it.isNotBlank() }
+        ?: request.uri?.let { uri -> readTextDocument(context, uri, MAX_TRUST_BACKUP_BYTES) }
+        ?: return TrustBackupReadResult.Error("Could not read the shared trust backup.")
+    return readTrustBackupImportReview(
+        raw = raw,
+        localPeerId = localPeerId,
+        existingPeers = existingPeers
+    )
+}
+
+private fun readTrustBackupImportReview(
+    raw: String,
+    localPeerId: String,
+    existingPeers: Map<String, TrustedPeer>
+): TrustBackupReadResult {
     val backup = TrustBackupCodec.decode(raw)
-        ?: return TrustBackupReadResult.Error("The selected file is not an AirChat signed trust backup.")
+        ?: return TrustBackupReadResult.Error("The selected content is not an AirChat signed trust backup.")
     val verification = TrustBackupCodec.verify(backup)
     if (!verification.isValid) {
         return TrustBackupReadResult.Error(
