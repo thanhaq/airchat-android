@@ -25,7 +25,9 @@ enum class PacketType {
     Direct,
     FileManifest,
     FileChunk,
-    Ack
+    Ack,
+    HistoryRequest,
+    HistoryResponse
 }
 
 @Serializable
@@ -100,3 +102,16 @@ enum class AckStatus {
     Verified,
     Unverified
 }
+
+@Serializable
+data class HistoryRequestPayload(
+    val knownPacketIds: List<String>,
+    val channels: List<String> = emptyList(),
+    val maxPackets: Int = 24
+)
+
+@Serializable
+data class HistoryResponsePayload(
+    val requestId: String,
+    val packets: List<MeshPacket>
+)

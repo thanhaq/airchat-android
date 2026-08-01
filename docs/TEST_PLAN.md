@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, public history sync, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -32,6 +32,7 @@ Devices: two physical Android phones on the same router or phone hotspot. The ho
 7. Confirm phone A changes the sent message to received after the ACK returns.
 8. Send a reply from phone B.
 9. Toggle airplane mode internet off while keeping Wi-Fi connected and repeat the message check.
+10. Close AirChat on phone B, send two public `lobby` messages from phone A, reopen phone B, and confirm recent public messages sync without duplicate ACK or relay noise.
 
 ## Wi-Fi Direct field test
 

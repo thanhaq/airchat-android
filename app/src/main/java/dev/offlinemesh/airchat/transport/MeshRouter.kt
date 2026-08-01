@@ -27,6 +27,8 @@ import dev.offlinemesh.airchat.protocol.DirectPayload
 import dev.offlinemesh.airchat.protocol.FileChunk
 import dev.offlinemesh.airchat.protocol.FileManifest
 import dev.offlinemesh.airchat.protocol.FileTransferCodec
+import dev.offlinemesh.airchat.protocol.HistoryRequestPayload
+import dev.offlinemesh.airchat.protocol.HistoryResponsePayload
 import dev.offlinemesh.airchat.protocol.MeshPacket
 import dev.offlinemesh.airchat.protocol.MeshPacketCodec
 import dev.offlinemesh.airchat.protocol.MessageDeduper
@@ -86,6 +88,8 @@ class MeshRouter(
     private val roomKeys = mutableMapOf<String, RoomKey>()
     private val privateRoomStatusMap = MutableStateFlow<Map<String, PrivateRoomStatus>>(emptyMap())
     private val lockedRoomPackets = linkedMapOf<String, MeshPacket>()
+    private val publicHistoryPackets = linkedMapOf<String, MeshPacket>()
+    private val historyRequestedPeers = mutableMapOf<String, Long>()
     private val routerJobs = mutableListOf<Job>()
     private var started = false
     private var lastCourierFlushAt = 0L
@@ -118,6 +122,7 @@ class MeshRouter(
                     logEvent("peers", "${transport.name} sees ${peers.size} peers")
                     flushOutbox()
                     flushCourierQueue()
+                    requestHistoryFromPeers(peers)
                 }
             }
             routerJobs += scope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -316,6 +321,7 @@ class MeshRouter(
             payload = body,
             ttl = DEFAULT_TTL
         )
+        rememberPublicHistoryPacket(packet)
         deduper.remember(packet.id)
         val delivered = broadcastPacket(packet)
         logEvent(
@@ -551,6 +557,7 @@ class MeshRouter(
                     hopCount = DEFAULT_TTL - packet.ttl,
                     isLocal = false
                 )
+                if (verified) rememberPublicHistoryPacket(packet)
                 sendAckFor(packet, verified)
             }
 
@@ -559,6 +566,8 @@ class MeshRouter(
             PacketType.FileManifest -> handleFileManifest(packet, verified)
             PacketType.FileChunk -> handleFileChunk(packet, verified)
             PacketType.Ack -> handleAckPacket(packet, verified)
+            PacketType.HistoryRequest -> handleHistoryRequest(packet, verified)
+            PacketType.HistoryResponse -> handleHistoryResponse(packet, verified)
             PacketType.Hello -> Unit
         }
 
@@ -809,6 +818,145 @@ class MeshRouter(
         return message.channel.removePrefix(DIRECT_CHANNEL_PREFIX) == ackOriginId
     }
 
+    private suspend fun requestHistoryFromPeers(peers: List<Peer>) {
+        val now = System.currentTimeMillis()
+        peers
+            .filterNot { it.id == localPeerId || isPeerBlocked(it.id) }
+            .forEach { peer ->
+                val lastRequestedAt = historyRequestedPeers[peer.id] ?: 0L
+                if (now - lastRequestedAt < HISTORY_REQUEST_INTERVAL_MS) return@forEach
+                historyRequestedPeers[peer.id] = now
+                val request = signedPacket(
+                    id = "history-request:${UUID.randomUUID()}",
+                    type = PacketType.HistoryRequest,
+                    channel = HISTORY_CHANNEL,
+                    payload = MeshPacketCodec.encodePayload(
+                        HistoryRequestPayload(
+                            knownPacketIds = knownPublicMessageIds(),
+                            channels = emptyList(),
+                            maxPackets = MAX_HISTORY_RESPONSE_PACKETS
+                        )
+                    ),
+                    ttl = 1
+                )
+                deduper.remember(request.id)
+                sendTargetedOrBroadcast(peer.id, request)
+                logEvent("history", "requested recent public chat from ${peer.id.take(6)}")
+            }
+    }
+
+    private suspend fun handleHistoryRequest(packet: MeshPacket, verified: Boolean) {
+        if (!verified) return
+        val request = MeshPacketCodec.decodePayload<HistoryRequestPayload>(packet.payload) ?: return
+        val packets = selectHistoryPacketsFor(request)
+        if (packets.isEmpty()) {
+            logEvent("history", "no public packets for ${packet.originId.take(6)}")
+            return
+        }
+        val response = signedPacket(
+            id = "history-response:${packet.id}:$localPeerId",
+            type = PacketType.HistoryResponse,
+            channel = HISTORY_CHANNEL,
+            payload = MeshPacketCodec.encodePayload(
+                HistoryResponsePayload(
+                    requestId = packet.id,
+                    packets = packets
+                )
+            ),
+            ttl = 1
+        )
+        deduper.remember(response.id)
+        sendTargetedOrBroadcast(packet.originId, response)
+        logEvent("history", "sent ${packets.size} public packets to ${packet.originId.take(6)}")
+    }
+
+    private fun handleHistoryResponse(packet: MeshPacket, verified: Boolean) {
+        if (!verified) return
+        val response = MeshPacketCodec.decodePayload<HistoryResponsePayload>(packet.payload) ?: return
+        var imported = 0
+        response.packets.forEach { historyPacket ->
+            if (handleHistoricalChatPacket(historyPacket)) imported += 1
+        }
+        logEvent("history", "imported $imported public packets from ${packet.originId.take(6)}")
+    }
+
+    private fun handleHistoricalChatPacket(packet: MeshPacket): Boolean {
+        if (packet.type != PacketType.Chat) return false
+        if (packet.channel.startsWith(DIRECT_CHANNEL_PREFIX)) return false
+        if (packet.originId == localPeerId || isPeerBlocked(packet.originId)) return false
+        when (val decision = packetGuard.inspect(packet)) {
+            PacketGuardDecision.Accepted -> Unit
+            PacketGuardDecision.RateLimited -> {
+                logEvent("guard", "rate-limited history from ${packet.originId.take(6)}")
+                return false
+            }
+
+            is PacketGuardDecision.Rejected -> {
+                logEvent("guard", "history ${decision.reason} for ${packet.originId.take(6)}")
+                return false
+            }
+        }
+        if (!deduper.remember(packet.id)) return false
+        val verified = packet.signature?.let {
+            IdentityStore.verify(
+                publicKeyEncoded = packet.originPublicKey,
+                bytes = MeshPacketCodec.signingBytes(packet),
+                signatureEncoded = it
+            )
+        } ?: false
+        if (!verified) return false
+        appendMessage(
+            packet = packet,
+            state = DeliveryState.Verified,
+            hopCount = (DEFAULT_TTL - packet.ttl).coerceAtLeast(0),
+            isLocal = false
+        )
+        rememberPublicHistoryPacket(packet)
+        return true
+    }
+
+    private fun selectHistoryPacketsFor(request: HistoryRequestPayload): List<MeshPacket> {
+        val knownIds = request.knownPacketIds.toSet()
+        val requestedChannels = request.channels.map { it.trim() }.filter { it.isNotBlank() }.toSet()
+        val maxPackets = request.maxPackets.coerceIn(1, MAX_HISTORY_RESPONSE_PACKETS)
+        var estimatedPayloadBytes = 0
+        return publicHistoryPackets.values
+            .filter { packet ->
+                packet.id !in knownIds &&
+                    !packet.channel.startsWith(DIRECT_CHANNEL_PREFIX) &&
+                    (requestedChannels.isEmpty() || packet.channel in requestedChannels)
+            }
+            .sortedByDescending { it.createdAt }
+            .asSequence()
+            .takeWhile { packet ->
+                val estimatedPacketBytes = MeshPacketCodec.encode(packet).toByteArray(Charsets.UTF_8).size * 2
+                if (estimatedPayloadBytes + estimatedPacketBytes > MAX_HISTORY_RESPONSE_PAYLOAD_BYTES) {
+                    false
+                } else {
+                    estimatedPayloadBytes += estimatedPacketBytes
+                    true
+                }
+            }
+            .take(maxPackets)
+            .toList()
+            .asReversed()
+    }
+
+    private fun rememberPublicHistoryPacket(packet: MeshPacket) {
+        if (packet.type != PacketType.Chat) return
+        if (packet.channel.startsWith(DIRECT_CHANNEL_PREFIX)) return
+        if (packet.signature == null) return
+        publicHistoryPackets.remove(packet.id)
+        publicHistoryPackets[packet.id] = packet
+        while (publicHistoryPackets.size > MAX_PUBLIC_HISTORY_PACKETS) {
+            val eldest = publicHistoryPackets.keys.firstOrNull() ?: break
+            publicHistoryPackets.remove(eldest)
+        }
+    }
+
+    private fun knownPublicMessageIds(): List<String> =
+        publicHistoryPackets.keys.toList().takeLast(MAX_HISTORY_KNOWN_IDS)
+
     private fun handleFileManifest(packet: MeshPacket, verified: Boolean) {
         if (packet.channel.startsWith(DIRECT_CHANNEL_PREFIX)) return
         val manifest = MeshPacketCodec.decodePayload<FileManifest>(packet.payload) ?: return
@@ -994,6 +1142,8 @@ class MeshRouter(
     private fun shouldRelay(packet: MeshPacket, verified: Boolean): Boolean {
         return verified &&
             packet.type != PacketType.Hello &&
+            packet.type != PacketType.HistoryRequest &&
+            packet.type != PacketType.HistoryResponse &&
             packet.ttl > 0 &&
             packet.originId != localPeerId &&
             localPeerId !in packet.path
@@ -1327,6 +1477,12 @@ class MeshRouter(
         const val MAX_RECEIVED_FILES = 50
         const val MAX_COURIER_PACKETS = 256
         const val MAX_LOCKED_ROOM_PACKETS = 128
+        const val MAX_PUBLIC_HISTORY_PACKETS = 300
+        const val MAX_HISTORY_KNOWN_IDS = 200
+        const val MAX_HISTORY_RESPONSE_PACKETS = 24
+        const val MAX_HISTORY_RESPONSE_PAYLOAD_BYTES = 40 * 1_024
+        const val HISTORY_REQUEST_INTERVAL_MS = 60L * 1_000L
+        const val HISTORY_CHANNEL = "_airchat_history"
         const val MAX_DIAGNOSTIC_EVENTS = 80
         const val MAX_DIAGNOSTIC_DETAIL = 120
         const val OUTBOX_TTL_MS = 24L * 60L * 60L * 1_000L

@@ -39,6 +39,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Message ids are deduplicated to reduce loops and replay noise.
 - Courier relay stores verified transit packets for a short bounded user-selected window when no transport currently accepts the relay.
 - Users can disable courier relay or clear the encrypted courier queue manually.
+- Public-room history sync imports only recent signed public `Chat` packets after verifying the original origin signature; it does not sync DMs, private-room ciphertext, file manifests, or file chunks.
 - PacketGuard limits oversized payloads, invalid TTL/path metadata, clock-skew abuse, and noisy origins.
 - Safety-number fingerprints give users a compact way to compare peer keys out of band.
 - QR safety cards and QR private-room invite cards make out-of-band comparison easier without transmitting passphrases or private keys.
@@ -61,6 +62,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Shared diagnostics can still reveal timing, transport state, packet categories, room names, peer id prefixes, and queue behavior.
 - System notifications can reveal that AirChat traffic arrived, plus sender names and room labels, to anyone who can see device notifications.
 - Pinned and known room preferences can reveal local workflow patterns if the device is unlocked.
+- Public history sync can reveal recent public room names and public message timing to peers that were not present when the messages were first sent.
 - Encrypted courier relay can extend packet lifetime within the local mesh for up to the configured queue window.
 - Android 8-11 devices use app-private software identity fallback because Keystore ECDH purpose support starts on Android 12.
 - Some Android 12+ devices may still use Android Keystore software backing or app-private software identity fallback when hardware-backed signing plus ECDH are unavailable.

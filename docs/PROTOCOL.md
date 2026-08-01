@@ -29,6 +29,8 @@ AirChat uses one JSON line per packet over TCP sockets. The same packet format i
 - `FileManifest`: file metadata, chunk count, and SHA-256 hash.
 - `FileChunk`: base64url-encoded chunk data.
 - `Ack`: signed delivery receipt for a message packet.
+- `HistoryRequest`: signed request for recent public chat packets the requester has not seen.
+- `HistoryResponse`: signed bundle of recent public `Chat` packets for a `HistoryRequest`.
 
 ## Signing
 
@@ -127,6 +129,29 @@ When a peer accepts and verifies a public `Chat` packet, decrypts and verifies a
 
 Senders mark a local message as `received` after a valid ACK for that packet id. Direct-message ACKs are accepted only from the direct recipient named in the local message channel.
 
+## Public history sync
+
+When a transport reports a peer, AirChat may send a signed `HistoryRequest` packet directly to that peer. The request includes a bounded list of public packet ids already visible locally, an optional list of public channels, and a requested maximum packet count.
+
+```json
+{
+  "knownPacketIds": ["uuid-1", "uuid-2"],
+  "channels": [],
+  "maxPackets": 24
+}
+```
+
+An empty `channels` list means the requester is willing to receive recent public chat packets from any public room. A responder answers with a signed `HistoryResponse` packet containing only recent signed `Chat` packets that are not in `knownPacketIds`.
+
+```json
+{
+  "requestId": "history-request-id",
+  "packets": []
+}
+```
+
+Receivers verify the outer response signature and then verify every included `Chat` packet against the original origin signature before appending it to the local message log. History-imported messages do not trigger ACK packets, relay, courier storage, private-room unlock attempts, or file reassembly. `HistoryRequest` and `HistoryResponse` packets are not relayed or courier-stored.
+
 ## File transfers
 
 File transfer is represented by a manifest packet and a sequence of chunk packets. Chunks are capped at 32 KiB before base64url encoding, and the current file picker caps selected files at 10 MB. Receivers reassemble only when every chunk index is present and the final SHA-256 hash matches the manifest.
@@ -154,6 +179,7 @@ Public-channel files use `FileManifest` and `FileChunk` packets. Private-room fi
 - A device never displays, acknowledges, relays, or courier-stores packets from locally blocked peer ids.
 - A device never sends an ACK for an ACK.
 - Only signed and verified non-`Hello` packets are relayed.
+- `HistoryRequest` and `HistoryResponse` are direct sync control packets and are never relayed or courier-stored.
 - If no transport accepts a relay packet, the router keeps it in a bounded encrypted courier queue for later peer contact.
 
 ## Courier queue

@@ -19,6 +19,8 @@ import dev.offlinemesh.airchat.protocol.DirectPayload
 import dev.offlinemesh.airchat.protocol.DirectEnvelope
 import dev.offlinemesh.airchat.protocol.DirectKind
 import dev.offlinemesh.airchat.protocol.FileTransferCodec
+import dev.offlinemesh.airchat.protocol.HistoryRequestPayload
+import dev.offlinemesh.airchat.protocol.HistoryResponsePayload
 import dev.offlinemesh.airchat.protocol.MeshPacket
 import dev.offlinemesh.airchat.protocol.MeshPacketCodec
 import dev.offlinemesh.airchat.protocol.PacketType
@@ -226,6 +228,164 @@ class MeshRouterTest {
         val relayed = transport.broadcastedPackets.single { it.type == PacketType.Chat }
         assertEquals(5, relayed.ttl)
         assertTrue(bob.peerId in relayed.path)
+    }
+
+    @Test
+    fun requestsPublicHistoryWhenPeerAppears() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+
+        transport.publishPeers(listOf(peerFor(bob)))
+        advanceUntilIdle()
+
+        val request = transport.sentPackets.single { (peerId, packet) ->
+            peerId == bob.peerId && packet.type == PacketType.HistoryRequest
+        }.second
+        val payload = MeshPacketCodec.decodePayload<HistoryRequestPayload>(request.payload)
+        assertEquals("_airchat_history", request.channel)
+        assertEquals(1, request.ttl)
+        assertTrue(payload?.knownPacketIds?.isEmpty() == true)
+        assertTrue(payload?.channels?.isEmpty() == true)
+        assertEquals(24, payload?.maxPackets)
+        assertTrue(router.diagnostics.value.any { it.category == "history" && it.detail.contains("requested") })
+    }
+
+    @Test
+    fun respondsToHistoryRequestWithUnknownPublicPackets() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        transport.publishPeers(listOf(peerFor(bob)))
+        advanceUntilIdle()
+        transport.sentPackets.clear()
+
+        router.sendChannelMessage(channel = "lobby", body = "missed public hello")
+        advanceUntilIdle()
+        val originalPacket = transport.broadcastedPackets.single { it.type == PacketType.Chat }
+        val request = signedPacket(
+            identity = bob,
+            id = "history-request-1",
+            type = PacketType.HistoryRequest,
+            channel = "_airchat_history",
+            payload = MeshPacketCodec.encodePayload(
+                HistoryRequestPayload(
+                    knownPacketIds = emptyList(),
+                    maxPackets = 10
+                )
+            )
+        )
+
+        transport.emitPacket(request, peerFor(bob))
+        advanceUntilIdle()
+
+        val response = transport.sentPackets.single { (peerId, packet) ->
+            peerId == bob.peerId && packet.type == PacketType.HistoryResponse
+        }.second
+        val payload = MeshPacketCodec.decodePayload<HistoryResponsePayload>(response.payload)
+        assertEquals("history-request-1", payload?.requestId)
+        assertEquals(listOf(originalPacket.id), payload?.packets?.map { it.id })
+        assertTrue(response.payload.contains("missed public hello"))
+        assertTrue(router.diagnostics.value.any { it.category == "history" && it.detail.contains("sent 1 public") })
+    }
+
+    @Test
+    fun historyResponseDoesNotIncludePrivateRoomMessages() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        transport.publishPeers(listOf(peerFor(bob)))
+        advanceUntilIdle()
+        transport.sentPackets.clear()
+        router.setRoomPassphrase(channel = "field_ops", passphrase = "shared field key")
+        router.sendChannelMessage(channel = "field_ops", body = "private room secret")
+        advanceUntilIdle()
+        val request = signedPacket(
+            identity = bob,
+            id = "history-request-private",
+            type = PacketType.HistoryRequest,
+            channel = "_airchat_history",
+            payload = MeshPacketCodec.encodePayload(
+                HistoryRequestPayload(
+                    knownPacketIds = emptyList(),
+                    maxPackets = 10
+                )
+            )
+        )
+
+        transport.emitPacket(request, peerFor(bob))
+        advanceUntilIdle()
+
+        assertTrue(transport.sentPackets.none { it.second.type == PacketType.HistoryResponse })
+        assertTrue(router.diagnostics.value.any { it.category == "history" && it.detail.contains("no public") })
+    }
+
+    @Test
+    fun importsVerifiedHistoryResponseWithoutAckOrRelay() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val carol = TestIdentity("carol")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        val missedPacket = signedPacket(
+            identity = carol,
+            id = "missed-chat-1",
+            type = PacketType.Chat,
+            channel = "lobby",
+            payload = "restored from public history"
+        )
+        val response = signedPacket(
+            identity = alice,
+            id = "history-response-1",
+            type = PacketType.HistoryResponse,
+            channel = "_airchat_history",
+            payload = MeshPacketCodec.encodePayload(
+                HistoryResponsePayload(
+                    requestId = "history-request-1",
+                    packets = listOf(missedPacket)
+                )
+            )
+        )
+
+        transport.emitPacket(response, peerFor(alice))
+        advanceUntilIdle()
+
+        assertEquals(1, router.messages.value.size)
+        assertEquals("restored from public history", router.messages.value.single().body)
+        assertEquals(DeliveryState.Verified, router.messages.value.single().state)
+        assertTrue(transport.broadcastedPackets.none { it.type == PacketType.Ack || it.id == missedPacket.id })
+        assertTrue(router.diagnostics.value.any { it.category == "history" && it.detail.contains("imported 1") })
     }
 
     @Test
@@ -791,6 +951,7 @@ class MeshRouterTest {
             )
         )
         advanceUntilIdle()
+        transport.sentPackets.clear()
 
         val sent = router.sendDirectMessage(fixedPeerId, "do not send")
 
@@ -895,6 +1056,7 @@ class MeshRouterTest {
         advanceUntilIdle()
         transport.publishPeers(listOf(peerFor(bob)))
         advanceUntilIdle()
+        transport.sentPackets.clear()
 
         val delivered = router.sendDirectFile(
             peerId = bob.peerId,
