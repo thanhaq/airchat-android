@@ -10,6 +10,8 @@ Use this checklist before making the repository public or posting the first demo
 - Enable Issues and Discussions.
 - Set the social preview to `art/social-card.svg` or an exported PNG version of it.
 
+Current public launch evidence is tracked in [LAUNCH_STATUS.md](LAUNCH_STATUS.md).
+
 ## First Public Commit
 
 - Keep the project root as this folder, not the parent workspace.
