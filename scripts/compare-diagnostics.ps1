@@ -235,6 +235,8 @@ $summaryFields = @(
     "Conversation"
     "Private room"
     "Background mesh"
+    "Power mode"
+    "Battery"
     "Peers visible"
     "Rooms visible"
     "Rooms unread"
@@ -320,6 +322,9 @@ if ((Get-FieldValue $a "Private room") -ne (Get-FieldValue $b "Private room")) {
 }
 if ((Get-FieldValue $a "Background mesh") -ne (Get-FieldValue $b "Background mesh")) {
     [void]$suggestions.Add("Background mesh differs. Align the setting before testing background delivery.")
+}
+if ((Get-FieldValue $a "Power mode") -ne (Get-FieldValue $b "Power mode")) {
+    [void]$suggestions.Add("Power modes differ. Check battery saver, charging state, and battery level before comparing relay behavior.")
 }
 foreach ($name in $allTransportNames) {
     $left = Get-TransportValue $a $name

@@ -11,11 +11,11 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 
 ## Devices
 
-| Role | Device | Android version | Battery saver | Notes |
-| --- | --- | --- | --- | --- |
-| A |  |  |  |  |
-| B |  |  |  |  |
-| C, optional courier |  |  |  |  |
+| Role | Device | Android version | Battery saver | AirChat power mode | Notes |
+| --- | --- | --- | --- | --- | --- |
+| A |  |  |  |  |  |
+| B |  |  |  |  |  |
+| C, optional courier |  |  |  |  |  |
 
 ## Network Setup
 
@@ -52,6 +52,8 @@ Copy this file for each release candidate and fill it in before making a GitHub 
 | Courier queue persists after restart |  |  |
 | Courier retention controls |  |  |
 | Courier relay disable/clear |  |  |
+| Battery-aware power chip |  |  |
+| Conserve mode diagnostics |  |  |
 | Background mesh notification |  |  |
 | Background message/file alerts |  |  |
 | Diagnostics share sheet |  |  |

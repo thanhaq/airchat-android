@@ -21,6 +21,8 @@ data class DiagnosticsSnapshot(
     val privateRoomStrength: String?,
     val directPeerName: String?,
     val backgroundMeshEnabled: Boolean,
+    val powerMode: String,
+    val batteryState: String,
     val peerCount: Int,
     val roomCount: Int,
     val unreadRoomCount: Int,
@@ -49,6 +51,8 @@ object DiagnosticsReportFormatter {
         appendLine("Conversation: ${conversationLabel(snapshot)}")
         appendLine("Private room: ${privateRoomLabel(snapshot)}")
         appendLine("Background mesh: ${if (snapshot.backgroundMeshEnabled) "on" else "off"}")
+        appendLine("Power mode: ${snapshot.powerMode}")
+        appendLine("Battery: ${snapshot.batteryState}")
         appendLine("Peers visible: ${snapshot.peerCount}")
         appendLine("Rooms visible: ${snapshot.roomCount}")
         appendLine("Rooms unread: ${snapshot.unreadRoomCount}")

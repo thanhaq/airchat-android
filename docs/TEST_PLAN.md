@@ -17,7 +17,7 @@ Expected coverage:
 - PacketGuard validation and rate limiting.
 - Conversation filtering.
 - File chunking and SHA-256 reassembly.
-- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, diagnostics event logging, trust, peer blocking, and key-change behavior.
+- Router outbox, relay, courier queue, ACK receipt, private-room encryption, room summaries, pinned-room and manual-room ordering, QR verification and invite payloads, background alert decisions, battery-aware relay policy, diagnostics event logging, trust, peer blocking, and key-change behavior.
 
 ## LAN field test
 
@@ -131,23 +131,25 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 1. Grant notification permission on Android 13+.
 2. Tap the background mesh icon.
 3. Confirm the persistent notification appears.
-4. Leave AirChat and lock the phone for two minutes.
-5. Send a message from another phone.
-6. Reopen AirChat and confirm the message arrived.
-7. Confirm the alert says a new AirChat message arrived without showing the message body.
-8. Send a small file and confirm the alert does not show the file name.
-9. Tap `Stop` in the notification and confirm discovery/relay stops when the activity is not visible.
+4. Confirm the `Power` chip says `normal`, `conserve`, or `critical`.
+5. Enable system battery saver and tap the `Power` chip; confirm diagnostics reports conserve mode when unplugged.
+6. Leave AirChat and lock the phone for two minutes.
+7. Send a message from another phone.
+8. Reopen AirChat and confirm the message arrived.
+9. Confirm the alert says a new AirChat message arrived without showing the message body.
+10. Send a small file and confirm the alert does not show the file name.
+11. Tap `Stop` in the notification and confirm discovery/relay stops when the activity is not visible.
 
 ## Diagnostics test
 
 1. Tap the info icon in the top bar.
-2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, visible peers, blocked peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, transport states, and recent events.
+2. Confirm the report includes app version, protocol version, Android version, peer id, identity key mode, private-room state, room code when enabled, background mesh state, power mode, battery state, visible peers, blocked peers, visible rooms, unread rooms, visible messages, visible files, courier queue size, courier relay mode, courier retention, transport states, and recent events.
 3. Confirm the report includes pinned room count after pinning a room.
 4. Confirm recent events include transport/packet/outbox/courier categories after exercising those paths.
 5. Confirm recent events do not include message bodies, private-room passphrases, or file names.
 6. Tap `Share` and confirm the Android share sheet opens with plain-text diagnostics.
 7. Save reports from two devices and run `.\scripts\compare-diagnostics.ps1 <device-a.txt> <device-b.txt>`.
-8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, pinned-room counts, blocked-peer counts, courier queue counts, and recent event categories.
+8. Confirm the compare report highlights app/protocol mismatches, transport differences, private-room code/state differences, power-mode differences, pinned-room counts, blocked-peer counts, courier queue counts, and recent event categories.
 
 ## Release sign-off
 

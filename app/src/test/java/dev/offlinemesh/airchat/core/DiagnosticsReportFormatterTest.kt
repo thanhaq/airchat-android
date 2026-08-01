@@ -25,6 +25,8 @@ class DiagnosticsReportFormatterTest {
                 privateRoomStrength = "strong",
                 directPeerName = null,
                 backgroundMeshEnabled = true,
+                powerMode = "conserve",
+                batteryState = "18% / unplugged / battery saver on",
                 peerCount = 2,
                 roomCount = 3,
                 unreadRoomCount = 1,
@@ -49,6 +51,8 @@ class DiagnosticsReportFormatterTest {
         assertTrue(report.contains("Identity key: Android Keystore hardware-backed"))
         assertTrue(report.contains("Conversation: #lobby"))
         assertTrue(report.contains("Private room: on / code ABCD-1234-EF56 / strength strong"))
+        assertTrue(report.contains("Power mode: conserve"))
+        assertTrue(report.contains("Battery: 18% / unplugged / battery saver on"))
         assertTrue(report.contains("Rooms visible: 3"))
         assertTrue(report.contains("Rooms unread: 1"))
         assertTrue(report.contains("Rooms pinned: 2"))

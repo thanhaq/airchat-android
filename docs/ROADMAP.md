@@ -31,7 +31,6 @@ AirChat is designed to evolve from a local Wi-Fi messenger into a resilient Andr
 - Add F-Droid build flavor.
 - Add screenshots and demo videos.
 - Add inline preview for common received file types.
-- Add battery-aware service policy and relay throttles.
 - Add reproducible release verification workflow.
 - Add structured diagnostics import to compare two device reports side by side.
 - Add localization.

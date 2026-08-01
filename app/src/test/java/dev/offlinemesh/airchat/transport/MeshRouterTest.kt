@@ -6,6 +6,7 @@ import dev.offlinemesh.airchat.crypto.MeshIdentity
 import dev.offlinemesh.airchat.crypto.RoomCrypto
 import dev.offlinemesh.airchat.model.CourierPolicy
 import dev.offlinemesh.airchat.model.DeliveryState
+import dev.offlinemesh.airchat.model.MeshPowerPolicy
 import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerConnectionState
 import dev.offlinemesh.airchat.model.PeerTrustState
@@ -264,6 +265,72 @@ class MeshRouterTest {
         assertEquals("courier-1", relayed.id)
         assertEquals(6, relayed.ttl)
         assertTrue(bob.peerId in relayed.path)
+    }
+
+    @Test
+    fun conservePowerModeClampsRelayedTtl() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        router.updatePowerPolicy(MeshPowerPolicy.Conserve)
+        advanceUntilIdle()
+
+        transport.emitPacket(
+            signedPacket(
+                identity = alice,
+                id = "conserve-relay",
+                type = PacketType.Chat,
+                channel = "lobby",
+                payload = "relay with lower ttl"
+            ),
+            peerFor(alice)
+        )
+        advanceUntilIdle()
+
+        val relayed = transport.broadcastedPackets.single { it.id == "conserve-relay" }
+        assertEquals(2, relayed.ttl)
+        assertTrue(router.diagnostics.value.any { it.category == "power" && it.detail.contains("mode conserve") })
+    }
+
+    @Test
+    fun criticalPowerModeDoesNotStoreNewCourierPackets() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val store = InMemoryCourierStore()
+        val transport = FakeTransport().apply { broadcastSucceeds = false }
+        val router = MeshRouter(
+            localIdentity = bob,
+            chatStore = InMemoryChatStore(),
+            courierStore = store,
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        router.updatePowerPolicy(MeshPowerPolicy.Critical)
+        advanceUntilIdle()
+
+        transport.emitPacket(
+            signedPacket(
+                identity = alice,
+                id = "critical-courier",
+                type = PacketType.Chat,
+                channel = "lobby",
+                payload = "do not store"
+            ),
+            peerFor(alice)
+        )
+        advanceUntilIdle()
+
+        assertEquals(0, router.courierQueueSize.value)
+        assertTrue(store.loadCourierPackets().isEmpty())
+        assertTrue(router.diagnostics.value.any { it.category == "power" && it.detail.contains("courier storage paused") })
     }
 
     @Test

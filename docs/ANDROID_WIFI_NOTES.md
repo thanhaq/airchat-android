@@ -26,7 +26,7 @@ Large payloads should be sent as chunked protocol packets instead of single mess
 
 AirChat includes a foreground service for background mesh mode. When enabled from the top bar, the service keeps the process in an Android-approved foreground state with a persistent notification, then keeps LAN/Wi-Fi Direct discovery and relay running after the activity leaves the screen.
 
-Android may still pause Wi-Fi work during aggressive battery saver modes. For field testing, keep battery saver off and avoid OEM app-killer profiles until transport stability has been measured.
+Android may still pause Wi-Fi work during aggressive battery saver modes. AirChat surfaces normal, conserve, and critical power modes in the UI and diagnostics; conserve mode reduces relay churn, and critical mode pauses new courier storage. For baseline field testing, keep battery saver off and avoid OEM app-killer profiles until transport stability has been measured.
 
 While background mesh is enabled and the AirChat UI is not visible, AirChat can post separate message/file alerts. These alerts intentionally avoid message bodies and file names; they only show the sender and conversation label.
 

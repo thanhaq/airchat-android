@@ -21,6 +21,7 @@ The project is intentionally structured like a serious open-source repo: small p
 - Passphrase-locked private rooms for encrypted group text and file transfer, with room verification codes and strength hints.
 - Encrypted local message and outbox persistence through Android Keystore AES-GCM.
 - Foreground background mesh mode so discovery and relay can stay alive after leaving the app, with privacy-preserving alerts for new messages and files.
+- Battery-aware background mesh policy with visible normal/conserve/critical modes, relay TTL clamping, and courier storage pause at critical battery.
 - Panic wipe for local history, outbox, peer cache, and identity on disk.
 - Safety-number fingerprints, trust confirmation, and key-change protection for peers.
 - Persistent peer blocklist with UI actions and `/block` / `/unblock` commands.
@@ -151,8 +152,10 @@ For background mesh mode:
 1. Grant notification permission on Android 13+.
 2. Tap the notification icon in the top bar.
 3. AirChat starts a foreground service and keeps LAN/Wi-Fi Direct discovery and relay active.
-4. When the app is not on screen, AirChat can post a generic new-message or new-file alert without message bodies or file names.
-5. Tap the same icon again or use `Stop` from the notification to leave background mode.
+4. Check the `Power` chip or diagnostics for normal, conserve, or critical battery mode.
+5. In conserve mode AirChat clamps relay TTL and spaces courier flushes; in critical mode it pauses new courier storage while keeping local send/receive paths available.
+6. When the app is not on screen, AirChat can post a generic new-message or new-file alert without message bodies or file names.
+7. Tap the same icon again or use `Stop` from the notification to leave background mode.
 
 For diagnostics:
 
@@ -219,7 +222,6 @@ Next security milestones:
 - Courier per-peer quotas, relay receipts, and richer expiry tuning.
 - Wi-Fi Aware transport for supported Android devices.
 - Inline preview for common received file types.
-- Battery-aware tuning for background foreground service.
 - F-Droid ready flavor without proprietary dependencies.
 
 ## Docs

@@ -1,8 +1,12 @@
 package dev.offlinemesh.airchat.core
 
 import android.Manifest
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.Context
+import android.os.BatteryManager
 import android.os.Build
+import android.os.PowerManager
 import dev.offlinemesh.airchat.crypto.IdentityStore
 import dev.offlinemesh.airchat.store.PreferencesCourierStore
 import dev.offlinemesh.airchat.store.PreferencesPeerBlockStore
@@ -48,6 +52,9 @@ class AppContainer(context: Context) {
         transports = listOf(lanTransport, wifiDirectTransport),
         scope = scope
     )
+    private val backgroundPowerState = MutableStateFlow(
+        BackgroundMeshPowerPolicy.evaluate(readDevicePowerSnapshot())
+    )
     private val backgroundNotifications = BackgroundMeshNotifications(
         context = appContext,
         router = router,
@@ -56,6 +63,7 @@ class AppContainer(context: Context) {
         scope = scope
     )
     val backgroundMeshEnabled: StateFlow<Boolean> = backgroundMeshState.asStateFlow()
+    val backgroundPowerStatus: StateFlow<BackgroundPowerStatus> = backgroundPowerState.asStateFlow()
 
     fun requiredPermissions(): Array<String> {
         val permissions = mutableListOf<String>()
@@ -72,6 +80,7 @@ class AppContainer(context: Context) {
     fun startUiSession() {
         synchronized(lifecycleLock) {
             uiSessions += 1
+            refreshPowerPolicyLocked()
             router.start()
         }
         backgroundNotifications.clearVisibleNotifications()
@@ -87,6 +96,7 @@ class AppContainer(context: Context) {
     fun enableBackgroundMesh() {
         synchronized(lifecycleLock) {
             backgroundMeshState.value = true
+            refreshPowerPolicyLocked()
             router.start()
         }
     }
@@ -94,9 +104,13 @@ class AppContainer(context: Context) {
     fun disableBackgroundMesh() {
         synchronized(lifecycleLock) {
             backgroundMeshState.value = false
+            refreshPowerPolicyLocked()
             stopRouterIfIdleLocked()
         }
     }
+
+    fun refreshPowerPolicy(): BackgroundPowerStatus =
+        synchronized(lifecycleLock) { refreshPowerPolicyLocked() }
 
     fun close() {
         synchronized(lifecycleLock) {
@@ -114,6 +128,7 @@ class AppContainer(context: Context) {
             router.clearLocalState()
             roomPreferencesStore.clear()
             identityStore.wipeFromDisk()
+            refreshPowerPolicyLocked()
             if (uiSessions > 0 || backgroundMeshState.value) {
                 router.start()
             }
@@ -126,6 +141,37 @@ class AppContainer(context: Context) {
         }
     }
 
+    private fun refreshPowerPolicyLocked(): BackgroundPowerStatus {
+        val status = BackgroundMeshPowerPolicy.evaluate(readDevicePowerSnapshot())
+        backgroundPowerState.value = status
+        router.updatePowerPolicy(status.policy)
+        return status
+    }
+
     private fun isUiVisible(): Boolean =
         synchronized(lifecycleLock) { uiSessions > 0 }
+
+    private fun readDevicePowerSnapshot(): DevicePowerSnapshot {
+        val batteryIntent = appContext.registerReceiver(
+            null,
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        )
+        val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val batteryPercent = if (level >= 0 && scale > 0) {
+            ((level * 100f) / scale).toInt().coerceIn(0, 100)
+        } else {
+            null
+        }
+        val plugged = batteryIntent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        val isCharging = plugged == BatteryManager.BATTERY_PLUGGED_AC ||
+            plugged == BatteryManager.BATTERY_PLUGGED_USB ||
+            plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS
+        val powerManager = appContext.getSystemService(PowerManager::class.java)
+        return DevicePowerSnapshot(
+            batteryPercent = batteryPercent,
+            isCharging = isCharging,
+            isBatterySaver = powerManager?.isPowerSaveMode == true
+        )
+    }
 }

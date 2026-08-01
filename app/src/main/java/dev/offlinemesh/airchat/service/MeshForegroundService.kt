@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import dev.offlinemesh.airchat.MainActivity
 import dev.offlinemesh.airchat.R
 import dev.offlinemesh.airchat.core.AirChatRuntime
+import dev.offlinemesh.airchat.core.BackgroundPowerStatus
 
 class MeshForegroundService : Service() {
     override fun onCreate() {
@@ -29,8 +30,9 @@ class MeshForegroundService : Service() {
             return START_NOT_STICKY
         }
 
-        startForegroundCompat()
-        AirChatRuntime.get(applicationContext).enableBackgroundMesh()
+        val runtime = AirChatRuntime.get(applicationContext)
+        runtime.enableBackgroundMesh()
+        startForegroundCompat(runtime.backgroundPowerStatus.value)
         return START_STICKY
     }
 
@@ -41,8 +43,8 @@ class MeshForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startForegroundCompat() {
-        val notification = buildNotification()
+    private fun startForegroundCompat(status: BackgroundPowerStatus) {
+        val notification = buildNotification(status)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
@@ -58,7 +60,7 @@ class MeshForegroundService : Service() {
         stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(status: BackgroundPowerStatus): Notification {
         val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         val openIntent = PendingIntent.getActivity(
             this,
@@ -75,7 +77,8 @@ class MeshForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(getString(R.string.background_mesh_title))
-            .setContentText(getString(R.string.background_mesh_text))
+            .setContentText(status.notificationText)
+            .setSubText("Power: ${status.diagnosticsLabel}")
             .setContentIntent(openIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

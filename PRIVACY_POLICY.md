@@ -12,7 +12,7 @@ AirChat stores the minimum local data needed for mesh messaging:
 - Courier relay preference and retention setting.
 - Trusted peer public keys.
 - Blocked peer ids.
-- Known rooms and pinned room preferences.
+- Known rooms, pinned room preferences, and manual room order.
 - Received-file inbox metadata and encrypted file blobs.
 - App preferences needed for foreground background mesh mode.
 - A short in-memory diagnostics event log for field testing.
@@ -29,7 +29,7 @@ Private-room invite cards include the room name and room-code fingerprint so peo
 
 Peer blocking is local to the device. AirChat can drop content and stop relaying packets from blocked peer ids, but it cannot hide that nearby radios exist or force another device to stop broadcasting.
 
-Diagnostics reports are created only when the user opens and shares them. The recent event log is intended for debugging and includes metadata such as transport state changes, packet categories, queue events, and guard rejections. It does not intentionally include message bodies, private-room passphrases, or file names.
+Diagnostics reports are created only when the user opens and shares them. The recent event log is intended for debugging and includes metadata such as transport state changes, packet categories, queue events, guard rejections, background power mode, and coarse battery state. It does not intentionally include message bodies, private-room passphrases, or file names.
 
 Background mesh alerts are posted only while background mesh is enabled and the app is not on screen. They identify that a new message or file arrived and show the sender and conversation label, but not message bodies or file names.
 

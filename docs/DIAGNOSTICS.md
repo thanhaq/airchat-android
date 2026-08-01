@@ -1,6 +1,6 @@
 # Diagnostics Workflow
 
-AirChat diagnostics are designed for field tests where two or three physical Android devices are on the same offline Wi-Fi or Wi-Fi Direct mesh. The report captures app version, protocol version, Android version, peer identity, private-room state, transport states, room counts, pinned-room count, blocked-peer count, courier queue size, courier relay mode, courier retention, and a short recent event timeline.
+AirChat diagnostics are designed for field tests where two or three physical Android devices are on the same offline Wi-Fi or Wi-Fi Direct mesh. The report captures app version, protocol version, Android version, peer identity, private-room state, background mesh state, power mode, battery state, transport states, room counts, pinned-room count, blocked-peer count, courier queue size, courier relay mode, courier retention, and a short recent event timeline.
 
 ## Capture Reports
 
@@ -32,7 +32,7 @@ bash ./scripts/compare-diagnostics.sh ./field-tests/device-a.txt ./field-tests/d
 
 The generated Markdown report includes:
 
-- App, protocol, Android, identity-key, conversation, room, unread, blocked-peer, file, courier counters, and courier policy side by side.
+- App, protocol, Android, identity-key, conversation, room, unread, blocked-peer, file, power, courier counters, and courier policy side by side.
 - Pinned-room counts for checking whether room preferences persisted.
 - Transport state differences for LAN and Wi-Fi Direct.
 - Recent diagnostic event categories from both devices.
@@ -43,6 +43,7 @@ The generated Markdown report includes:
 
 - `App` or `Protocol` differs: install the same APK on every device.
 - `Transport` differs: check Wi-Fi, Android nearby/location permissions, hotspot/router client isolation, Wi-Fi Direct support, and battery saver.
+- `Power mode` differs: align charging state, battery saver, and low-battery state before comparing relay behavior.
 - `Private room` differs: switch both devices to the same room, enter the same passphrase, then compare `/code`.
 - `Conversation` differs: switch both devices to the same room before debugging room delivery.
 - `Courier queue` is non-zero: reconnect peers to the same local mesh before the courier window expires, or clear the queue manually from the `Courier` chip before a sensitive test.

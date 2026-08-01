@@ -85,6 +85,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.offlinemesh.airchat.core.AppContainer
+import dev.offlinemesh.airchat.core.BackgroundPowerStatus
 import dev.offlinemesh.airchat.core.ChatUiState
 import dev.offlinemesh.airchat.core.ChatViewModel
 import dev.offlinemesh.airchat.core.DiagnosticsReportFormatter
@@ -120,6 +121,7 @@ fun AirChatApp(container: AppContainer) {
     }
     val state by viewModel.uiState.collectAsState()
     val backgroundMeshEnabled by container.backgroundMeshEnabled.collectAsState()
+    val backgroundPowerStatus by container.backgroundPowerStatus.collectAsState()
     var confirmWipe by remember { mutableStateOf(false) }
     var filePendingSave by remember { mutableStateOf<ReceivedFile?>(null) }
     var peerPendingTrust by remember { mutableStateOf<Peer?>(null) }
@@ -174,6 +176,8 @@ fun AirChatApp(container: AppContainer) {
         onUnblockPeer = viewModel::unblockPeer,
         onClearDirect = viewModel::clearDirectPeer,
         backgroundMeshEnabled = backgroundMeshEnabled,
+        backgroundPowerStatus = backgroundPowerStatus,
+        onRefreshPower = { container.refreshPowerPolicy() },
         onToggleBackgroundMesh = {
             if (backgroundMeshEnabled) {
                 MeshForegroundService.stop(context)
@@ -183,11 +187,13 @@ fun AirChatApp(container: AppContainer) {
         },
         onPanicWipe = { confirmWipe = true },
         onShowDiagnostics = {
+            val powerStatus = container.refreshPowerPolicy()
             diagnosticsReport = DiagnosticsReportFormatter.format(
                 diagnosticsSnapshot(
                     context = context,
                     state = state,
                     backgroundMeshEnabled = backgroundMeshEnabled,
+                    backgroundPowerStatus = powerStatus,
                     identityKeySecurity = container.identityStore.identityKeySecurity
                 )
             )
@@ -367,6 +373,8 @@ private fun AirChatScreen(
     onUnblockPeer: (Peer) -> Unit,
     onClearDirect: () -> Unit,
     backgroundMeshEnabled: Boolean,
+    backgroundPowerStatus: BackgroundPowerStatus,
+    onRefreshPower: () -> Unit,
     onToggleBackgroundMesh: () -> Unit,
     onPanicWipe: () -> Unit,
     onShowDiagnostics: () -> Unit,
@@ -454,6 +462,13 @@ private fun AirChatScreen(
                 AssistChip(
                     onClick = onShowCourierSettings,
                     label = { Text(courierChipLabel(state)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                )
+                AssistChip(
+                    onClick = onRefreshPower,
+                    label = { Text("Power ${backgroundPowerStatus.diagnosticsLabel}") },
                     leadingIcon = {
                         Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
@@ -1127,6 +1142,7 @@ private fun diagnosticsSnapshot(
     context: Context,
     state: ChatUiState,
     backgroundMeshEnabled: Boolean,
+    backgroundPowerStatus: BackgroundPowerStatus,
     identityKeySecurity: IdentityKeySecurity
 ): DiagnosticsSnapshot {
     return DiagnosticsSnapshot(
@@ -1143,6 +1159,8 @@ private fun diagnosticsSnapshot(
         privateRoomStrength = state.privateRoomStrength,
         directPeerName = state.directPeer?.name,
         backgroundMeshEnabled = backgroundMeshEnabled,
+        powerMode = backgroundPowerStatus.diagnosticsLabel,
+        batteryState = backgroundPowerStatus.batteryLabel,
         peerCount = state.peers.size,
         roomCount = state.rooms.size,
         unreadRoomCount = state.rooms.count { it.unreadCount > 0 },

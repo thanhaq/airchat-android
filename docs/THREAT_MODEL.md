@@ -35,6 +35,7 @@ AirChat is built for local communication when internet access is unavailable, ce
 - Known-room, pinned-room, and manual room-order preferences are encrypted with Android Keystore AES-GCM before persistence.
 - Panic wipe clears message history, outbox, peer cache, identity data on disk, and rotates the in-memory identity for the running process.
 - Relay mutation of TTL/path does not affect origin signatures.
+- Battery-aware conserve mode clamps relay TTL and spaces courier flushes; critical mode pauses new courier storage instead of persisting relay packets while the device is close to shutdown.
 - Message ids are deduplicated to reduce loops and replay noise.
 - Courier relay stores verified transit packets for a short bounded user-selected window when no transport currently accepts the relay.
 - Users can disable courier relay or clear the encrypted courier queue manually.

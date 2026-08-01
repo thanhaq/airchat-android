@@ -16,6 +16,7 @@ import dev.offlinemesh.airchat.model.Peer
 import dev.offlinemesh.airchat.model.PeerTrustState
 import dev.offlinemesh.airchat.model.PrivateRoomStatus
 import dev.offlinemesh.airchat.model.ReceivedFile
+import dev.offlinemesh.airchat.model.MeshPowerPolicy
 import dev.offlinemesh.airchat.model.TransportStatus
 import dev.offlinemesh.airchat.model.TrustedPeer
 import dev.offlinemesh.airchat.protocol.AckPayload
@@ -79,6 +80,7 @@ class MeshRouter(
     private val packetGuard = PacketGuard()
     private val fileAssemblies = mutableMapOf<String, PendingFileAssembly>()
     private val courierPolicyState = MutableStateFlow(courierStore.loadCourierPolicy().sanitized())
+    private val powerPolicyState = MutableStateFlow(MeshPowerPolicy.Normal)
     private val courierPackets = loadInitialCourierPackets()
     private val courierCount = MutableStateFlow(courierPackets.size)
     private val roomKeys = mutableMapOf<String, RoomKey>()
@@ -86,6 +88,7 @@ class MeshRouter(
     private val lockedRoomPackets = linkedMapOf<String, MeshPacket>()
     private val routerJobs = mutableListOf<Job>()
     private var started = false
+    private var lastCourierFlushAt = 0L
 
     val localPeerId: String
         get() = localIdentity.peerId
@@ -101,6 +104,7 @@ class MeshRouter(
     val blockedPeerIds: StateFlow<Set<String>> = blockedPeerSet.asStateFlow()
     val courierQueueSize: StateFlow<Int> = courierCount.asStateFlow()
     val courierPolicy: StateFlow<CourierPolicy> = courierPolicyState.asStateFlow()
+    val powerPolicy: StateFlow<MeshPowerPolicy> = powerPolicyState.asStateFlow()
     val privateRoomStatuses: StateFlow<Map<String, PrivateRoomStatus>> = privateRoomStatusMap.asStateFlow()
 
     fun start() {
@@ -166,6 +170,18 @@ class MeshRouter(
         logEvent(
             "courier",
             "policy ${if (sanitized.enabled) "enabled" else "disabled"} retention ${sanitized.retentionMinutes}m"
+        )
+    }
+
+    fun updatePowerPolicy(policy: MeshPowerPolicy) {
+        val sanitized = policy.sanitized()
+        val previous = powerPolicyState.value
+        if (previous == sanitized) return
+        powerPolicyState.value = sanitized
+        logEvent(
+            "power",
+            "mode ${sanitized.mode.name.lowercase()} relay ttl ${sanitized.maxRelayTtl} " +
+                "courier flush ${sanitized.courierFlushIntervalMs / 1_000}s storage ${sanitized.storeCourierPackets}"
         )
     }
 
@@ -961,14 +977,17 @@ class MeshRouter(
 
     private suspend fun relayOrQueueCourier(packet: MeshPacket, verified: Boolean) {
         if (!shouldRelay(packet, verified)) return
+        val powerPolicy = powerPolicyState.value
         val relayed = packet.copy(
-            ttl = packet.ttl - 1,
+            ttl = (packet.ttl - 1).coerceAtMost(powerPolicy.maxRelayTtl),
             path = packet.path + localPeerId
         )
+        if (relayed.ttl <= 0) return
         if (!broadcastPacket(relayed)) {
             queueCourierPacket(relayed)
         } else {
-            logEvent("relay", "relayed ${packet.type.name} from ${packet.originId.take(6)} ttl ${relayed.ttl}")
+            val mode = powerPolicy.mode.name.lowercase()
+            logEvent("relay", "relayed ${packet.type.name} from ${packet.originId.take(6)} ttl ${relayed.ttl} power $mode")
         }
     }
 
@@ -985,6 +1004,11 @@ class MeshRouter(
         val policy = courierPolicyState.value
         if (!policy.enabled) {
             logEvent("courier", "relay disabled; dropped ${packet.type.name} from ${packet.originId.take(6)}")
+            return
+        }
+        val powerPolicy = powerPolicyState.value
+        if (!powerPolicy.storeCourierPackets) {
+            logEvent("power", "courier storage paused; dropped ${packet.type.name} from ${packet.originId.take(6)}")
             return
         }
         if (packet.ttl <= 0 || packet.originId == localPeerId) return
@@ -1005,6 +1029,14 @@ class MeshRouter(
     private suspend fun flushCourierQueue() {
         pruneCourierQueue()
         if (courierPackets.isEmpty()) return
+        val powerPolicy = powerPolicyState.value
+        val now = System.currentTimeMillis()
+        if (powerPolicy.courierFlushIntervalMs > 0L &&
+            now - lastCourierFlushAt < powerPolicy.courierFlushIntervalMs
+        ) {
+            return
+        }
+        lastCourierFlushAt = now
         val retainedBeforeFlush = courierPackets.size
         val retained = linkedMapOf<String, CourierPacket>()
         courierPackets.values.forEach { item ->
