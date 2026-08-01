@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -113,7 +114,9 @@ import dev.offlinemesh.airchat.model.PeerConnectionState
 import dev.offlinemesh.airchat.model.PeerTrustState
 import dev.offlinemesh.airchat.model.ReceivedFile
 import dev.offlinemesh.airchat.model.RoomSummary
+import dev.offlinemesh.airchat.model.TrustedPeer
 import dev.offlinemesh.airchat.service.MeshForegroundService
+import dev.offlinemesh.airchat.transport.TrustImportResult
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
@@ -139,6 +142,8 @@ fun AirChatApp(container: AppContainer) {
     var roomVerificationQr by remember { mutableStateOf<RoomVerificationQr?>(null) }
     var courierSettingsOpen by remember { mutableStateOf(false) }
     var diagnosticsReport by remember { mutableStateOf<DiagnosticsDialogReport?>(null) }
+    var trustBackupReview by remember { mutableStateOf<TrustBackupImportReview?>(null) }
+    var trustBackupNotice by remember { mutableStateOf<TrustBackupImportNotice?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -161,6 +166,27 @@ fun AirChatApp(container: AppContainer) {
         if (uri == null || file == null) return@rememberLauncherForActivityResult
         coroutineScope.launch {
             writeReceivedFile(context, uri, file)
+        }
+    }
+    val trustBackupPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            when (
+                val result = withContext(Dispatchers.IO) {
+                    readTrustBackupImportReview(
+                        context = context,
+                        uri = uri,
+                        localPeerId = state.localPeerId,
+                        existingPeers = container.peerTrustStore.loadTrustedPeers()
+                    )
+                }
+            ) {
+                is TrustBackupReadResult.Ready -> trustBackupReview = result.review
+                is TrustBackupReadResult.Error -> trustBackupNotice = TrustBackupImportNotice(
+                    title = "Trust backup rejected",
+                    body = result.message
+                )
+            }
         }
     }
     AirChatScreen(
@@ -190,6 +216,7 @@ fun AirChatApp(container: AppContainer) {
                 shareTrustBackup(context, backup)
             }
         },
+        onImportTrustBackup = { trustBackupPicker.launch("*/*") },
         onConnectPeer = viewModel::connectWifiPeer,
         onSelectDirect = viewModel::selectDirectPeer,
         onTrustPeer = { peer -> peerPendingTrust = peer },
@@ -254,6 +281,64 @@ fun AirChatApp(container: AppContainer) {
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+        )
+    }
+    trustBackupReview?.let { review ->
+        AlertDialog(
+            onDismissRequest = { trustBackupReview = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val result = container.router.importTrustedPeers(review.trustedPeers)
+                        trustBackupReview = null
+                        trustBackupNotice = TrustBackupImportNotice(
+                            title = "Trust backup imported",
+                            body = trustImportResultLabel(result)
+                        )
+                    }
+                ) {
+                    Text("Import")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { trustBackupReview = null }) {
+                    Text("Cancel")
+                }
+            },
+            title = { Text("Import trust backup?") },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Exporter: ${review.exporterLabel}")
+                    Text("Created: ${review.createdAtLabel}")
+                    Text("Trusted peers in backup: ${review.trustedPeers.size}")
+                    Text("Will add: ${review.newCount}")
+                    Text("Already trusted: ${review.unchangedCount}")
+                    Text("Key conflicts skipped: ${review.conflictCount}")
+                    if (review.selfCount > 0) {
+                        Text("Self records skipped: ${review.selfCount}")
+                    }
+                    Text(
+                        text = "Verify the exporter out of band before importing. Conflicting keys are skipped.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        )
+    }
+    trustBackupNotice?.let { notice ->
+        AlertDialog(
+            onDismissRequest = { trustBackupNotice = null },
+            confirmButton = {
+                TextButton(onClick = { trustBackupNotice = null }) {
+                    Text("Close")
+                }
+            },
+            title = { Text(notice.title) },
+            text = { Text(notice.body) }
         )
     }
     if (courierSettingsOpen) {
@@ -419,6 +504,7 @@ private fun AirChatScreen(
     onPanicWipe: () -> Unit,
     onShowDiagnostics: () -> Unit,
     onShareTrustBackup: () -> Unit,
+    onImportTrustBackup: () -> Unit,
     onPickFile: () -> Unit,
     onSaveFile: (ReceivedFile) -> Unit,
     onShareFile: (ReceivedFile) -> Unit
@@ -443,6 +529,9 @@ private fun AirChatScreen(
                     }
                     IconButton(onClick = onShareTrustBackup) {
                         Icon(Icons.Default.SaveAlt, contentDescription = "Share trust backup")
+                    }
+                    IconButton(onClick = onImportTrustBackup) {
+                        Icon(Icons.Default.UploadFile, contentDescription = "Import trust backup")
                     }
                     IconButton(onClick = onToggleBackgroundMesh) {
                         Icon(
@@ -1217,6 +1306,80 @@ private data class DiagnosticsDialogReport(
         }.trimEnd()
 }
 
+private data class TrustBackupImportReview(
+    val backup: SignedTrustBackup,
+    val trustedPeers: List<TrustedPeer>,
+    val newCount: Int,
+    val unchangedCount: Int,
+    val conflictCount: Int,
+    val selfCount: Int
+) {
+    val exporterLabel: String
+        get() = "${backup.payload.exporterDisplayName} / ${backup.payload.exporterPeerId}"
+    val createdAtLabel: String
+        get() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(backup.payload.createdAt))
+}
+
+private data class TrustBackupImportNotice(
+    val title: String,
+    val body: String
+)
+
+private sealed class TrustBackupReadResult {
+    data class Ready(val review: TrustBackupImportReview) : TrustBackupReadResult()
+    data class Error(val message: String) : TrustBackupReadResult()
+}
+
+private fun readTrustBackupImportReview(
+    context: Context,
+    uri: Uri,
+    localPeerId: String,
+    existingPeers: Map<String, TrustedPeer>
+): TrustBackupReadResult {
+    val raw = readTextDocument(context, uri, MAX_TRUST_BACKUP_BYTES)
+        ?: return TrustBackupReadResult.Error("Could not read the selected backup, or it is larger than 1 MB.")
+    val backup = TrustBackupCodec.decode(raw)
+        ?: return TrustBackupReadResult.Error("The selected file is not an AirChat signed trust backup.")
+    val verification = TrustBackupCodec.verify(backup)
+    if (!verification.isValid) {
+        return TrustBackupReadResult.Error(
+            "The trust backup signature could not be verified: ${verification.reason ?: "unknown reason"}."
+        )
+    }
+    val trustedPeers = TrustBackupCodec.verifiedTrustedPeers(backup).orEmpty()
+    return TrustBackupReadResult.Ready(
+        TrustBackupImportReview(
+            backup = backup,
+            trustedPeers = trustedPeers,
+            newCount = trustedPeers.count { peer -> peer.peerId != localPeerId && existingPeers[peer.peerId] == null },
+            unchangedCount = trustedPeers.count { peer ->
+                peer.peerId != localPeerId && existingPeers[peer.peerId]?.publicKey == peer.publicKey
+            },
+            conflictCount = trustedPeers.count { peer ->
+                peer.peerId != localPeerId &&
+                    existingPeers[peer.peerId]?.let { existing -> existing.publicKey != peer.publicKey } == true
+            },
+            selfCount = trustedPeers.count { peer -> peer.peerId == localPeerId }
+        )
+    )
+}
+
+private fun readTextDocument(context: Context, uri: Uri, maxBytes: Int): String? {
+    return context.contentResolver.openInputStream(uri)?.use { input ->
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8 * 1024)
+        var total = 0
+        while (true) {
+            val read = input.read(buffer)
+            if (read == -1) break
+            total += read
+            if (total > maxBytes) return null
+            output.write(buffer, 0, read)
+        }
+        output.toString(Charsets.UTF_8.name())
+    }
+}
+
 private suspend fun readPickedFile(context: Context, uri: Uri): PickedFile? = withContext(Dispatchers.IO) {
     val resolver = context.contentResolver
     val name = runCatching {
@@ -1358,6 +1521,13 @@ private fun shareTrustBackup(context: Context, backup: SignedTrustBackup) {
     )
 }
 
+private fun trustImportResultLabel(result: TrustImportResult): String = buildString {
+    append("Added ${result.addedCount} trusted peers.")
+    if (result.unchangedCount > 0) append(" Already trusted: ${result.unchangedCount}.")
+    if (result.skippedConflictCount > 0) append(" Key conflicts skipped: ${result.skippedConflictCount}.")
+    if (result.skippedSelfCount > 0) append(" Self records skipped: ${result.skippedSelfCount}.")
+}
+
 private fun sharePeerSafety(
     context: Context,
     peer: Peer,
@@ -1400,6 +1570,7 @@ private fun shareRoomInvite(context: Context, channel: String, code: String) {
 }
 
 private const val MAX_PICKED_FILE_BYTES = 10 * 1024 * 1024
+private const val MAX_TRUST_BACKUP_BYTES = 1 * 1024 * 1024
 private const val MAX_ROOM_CHIPS = 8
 private val COURIER_RETENTION_OPTIONS = listOf(5, 15, 60)
 private val COURIER_ORIGIN_QUOTA_OPTIONS = listOf(8, 16, 32, 64)

@@ -1087,6 +1087,89 @@ class MeshRouterTest {
     }
 
     @Test
+    fun importTrustedPeersAddsNewRecordsAndRefreshesPeerTrustState() = runTest {
+        val alice = TestIdentity("alice")
+        val bob = TestIdentity("bob")
+        val transport = FakeTransport()
+        val trustStore = InMemoryPeerTrustStore()
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            peerTrustStore = trustStore,
+            transports = listOf(transport),
+            scope = routerScope()
+        )
+        router.start()
+        advanceUntilIdle()
+        transport.publishPeers(listOf(peerFor(bob)))
+        advanceUntilIdle()
+        assertEquals(PeerTrustState.Unknown, router.peers.value.single().trustState)
+
+        val result = router.importTrustedPeers(
+            listOf(
+                TrustedPeer(
+                    peerId = bob.peerId,
+                    displayName = bob.displayName,
+                    publicKey = bob.publicKeyEncoded,
+                    trustedAt = 42L
+                )
+            )
+        )
+
+        assertEquals(1, result.addedCount)
+        assertEquals(0, result.skippedConflictCount)
+        assertEquals(PeerTrustState.Trusted, router.peers.value.single().trustState)
+        assertEquals(bob.publicKeyEncoded, trustStore.loadTrustedPeers().getValue(bob.peerId).publicKey)
+    }
+
+    @Test
+    fun importTrustedPeersSkipsExistingKeyConflicts() = runTest {
+        val alice = TestIdentity("alice")
+        val oldBob = TestIdentity("bob-old")
+        val newBob = TestIdentity("bob-new")
+        val fixedPeerId = "stable-peer-id"
+        val trustStore = InMemoryPeerTrustStore().apply {
+            trustPeer(
+                TrustedPeer(
+                    peerId = fixedPeerId,
+                    displayName = "bob",
+                    publicKey = oldBob.publicKeyEncoded,
+                    trustedAt = 1L
+                )
+            )
+        }
+        val router = MeshRouter(
+            localIdentity = alice,
+            chatStore = InMemoryChatStore(),
+            peerTrustStore = trustStore,
+            transports = listOf(FakeTransport()),
+            scope = routerScope()
+        )
+
+        val result = router.importTrustedPeers(
+            listOf(
+                TrustedPeer(
+                    peerId = fixedPeerId,
+                    displayName = "bob",
+                    publicKey = newBob.publicKeyEncoded,
+                    trustedAt = 2L
+                ),
+                TrustedPeer(
+                    peerId = alice.peerId,
+                    displayName = alice.displayName,
+                    publicKey = alice.publicKeyEncoded,
+                    trustedAt = 3L
+                )
+            )
+        )
+
+        assertEquals(0, result.addedCount)
+        assertEquals(1, result.skippedConflictCount)
+        assertEquals(1, result.skippedSelfCount)
+        assertEquals(oldBob.publicKeyEncoded, trustStore.loadTrustedPeers().getValue(fixedPeerId).publicKey)
+    }
+
+    @Test
     fun keyChangedTrustedPeerBlocksDirectMessages() = runTest {
         val alice = TestIdentity("alice")
         val oldBob = TestIdentity("bob-old")

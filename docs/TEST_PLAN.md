@@ -68,13 +68,15 @@ Devices: three physical Android phones, or two phones plus one emulator/fake tra
 3. Tap `Share safety card` and confirm the shared text includes the peer label, safety number, and `AIRCHAT-SAFETY` payload without raw public or private key material.
 4. Compare the safety number, QR content, or shared payload with phone B before confirming.
 5. Tap the top-bar trust-backup icon and confirm the shared text contains a signed JSON payload with trusted peer public keys but no messages, room passphrases, or private keys.
-6. Tap `DM` and send a private message.
-7. Confirm the message appears only in the direct conversation.
-8. Confirm the sender changes the DM from sent to received only after the recipient receives it.
-9. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
-10. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
-11. Type `/block` and confirm phone B is listed.
-12. Type `/unblock <peer>` and confirm DMs can be sent again.
+6. On a fresh device, tap the import trust-backup icon, select the backup file, confirm the review dialog shows the exporter, and import the new trusted peers after verifying the exporter out of band.
+7. Repeat import on a device that already trusts the same peer id with a different public key, and confirm the dialog/result reports the conflict was skipped.
+8. Tap `DM` and send a private message.
+9. Confirm the message appears only in the direct conversation.
+10. Confirm the sender changes the DM from sent to received only after the recipient receives it.
+11. Reinstall phone B and confirm phone A marks the peer as `Key changed` before trusting the new key.
+12. Tap the block icon for phone B or type `/block <peer>`, then confirm phone A drops new packets from phone B and does not send DMs to it.
+13. Type `/block` and confirm phone B is listed.
+14. Type `/unblock <peer>` and confirm DMs can be sent again.
 
 ## Private room test
 

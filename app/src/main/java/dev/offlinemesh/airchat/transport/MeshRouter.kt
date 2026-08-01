@@ -59,6 +59,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class TrustImportResult(
+    val addedCount: Int,
+    val unchangedCount: Int,
+    val skippedConflictCount: Int,
+    val skippedSelfCount: Int
+)
+
 class MeshRouter(
     private val localIdentity: MeshIdentity,
     private val chatStore: ChatStore = InMemoryChatStore(),
@@ -262,6 +269,37 @@ class MeshRouter(
         trustedPeers.value = peerTrustStore.loadTrustedPeers()
         refreshVisiblePeers()
         return true
+    }
+
+    fun importTrustedPeers(peers: Collection<TrustedPeer>): TrustImportResult {
+        val existing = peerTrustStore.loadTrustedPeers()
+        var added = 0
+        var unchanged = 0
+        var skippedConflict = 0
+        var skippedSelf = 0
+        peers.distinctBy { it.peerId }.forEach { peer ->
+            when {
+                peer.peerId == localPeerId -> skippedSelf += 1
+                existing[peer.peerId] == null -> {
+                    peerTrustStore.trustPeer(peer)
+                    added += 1
+                }
+                existing.getValue(peer.peerId).publicKey == peer.publicKey -> unchanged += 1
+                else -> skippedConflict += 1
+            }
+        }
+        trustedPeers.value = peerTrustStore.loadTrustedPeers()
+        refreshVisiblePeers()
+        logEvent(
+            "trust",
+            "import added $added unchanged $unchanged conflicts $skippedConflict self $skippedSelf"
+        )
+        return TrustImportResult(
+            addedCount = added,
+            unchangedCount = unchanged,
+            skippedConflictCount = skippedConflict,
+            skippedSelfCount = skippedSelf
+        )
     }
 
     fun appendLocalNotice(channel: String, body: String) {
